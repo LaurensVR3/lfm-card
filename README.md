@@ -20,7 +20,7 @@ Unofficial and fan-made; all race data comes from LFM's public API.
 - **Starting soon scene**: countdown, session schedule (practice / qualifying / race times), track with your record there, the full entry list with drivers who are streaming, career stats and form.
 - **Official broadcast**: shows when LFM is streaming your race, on YouTube (scheduled streams, so it appears ahead of time) or live on the official LFM Twitch channels.
 - **Live**: switches to a LIVE state from lights out until the result is published.
-- **Results**: start → finish, places gained, rating and SR change, incidents, best lap, and a form guide of the last 10 finishes.
+- **Results**: start → finish, places gained, rating and SR change, incidents, best lap, and a form guide of the last 10 finishes. DNF in the form means LFM has no finishing position for that race (retired, or didn't start / left early).
 - **Livery flip**: the avatar flips to a picture of your car in your LFM custom livery every 30 s.
 - **Celebrations**: banners for a win, a podium, a new personal-best rating, a licence promotion and every 100th start.
 - **Multi-sim**: ACC, AC, AC EVO, LMU, AMS2 and RaceRoom. It follows the sim of your next race unless you pin one.
