@@ -1,0 +1,171 @@
+/* Shared styles for the LFM overlays: fonts, tokens, plates, avatar coin,
+   page rotator, field ticker, celebrations and ambient motion. */
+@font-face{font-family:"General Sans";src:url("/fonts/GeneralSans-Regular.woff2") format("woff2");font-weight:400;font-style:normal}
+@font-face{font-family:"General Sans";src:url("/fonts/GeneralSans-Italic.woff2") format("woff2");font-weight:400;font-style:italic}
+@font-face{font-family:"General Sans";src:url("/fonts/GeneralSans-Medium.woff2") format("woff2");font-weight:500;font-style:normal}
+@font-face{font-family:"General Sans";src:url("/fonts/GeneralSans-MediumItalic.woff2") format("woff2");font-weight:500;font-style:italic}
+@font-face{font-family:"General Sans";src:url("/fonts/GeneralSans-Semibold.woff2") format("woff2");font-weight:600;font-style:normal}
+@font-face{font-family:"General Sans";src:url("/fonts/GeneralSans-SemiboldItalic.woff2") format("woff2");font-weight:600;font-style:italic}
+@font-face{font-family:"General Sans";src:url("/fonts/GeneralSans-Bold.woff2") format("woff2");font-weight:700;font-style:normal}
+@font-face{font-family:"General Sans";src:url("/fonts/GeneralSans-BoldItalic.woff2") format("woff2");font-weight:700;font-style:italic}
+
+:root{
+  --volt:#E8FF29;
+  --volt-rgb:232,255,41;
+  --on-volt:#111;  /* text on accent-coloured fills */
+  --bg:#141416;
+  --panel:#1c1c1f;
+  --mist:#EBEBEB;
+  --ink-soft:rgba(235,235,235,.62);
+  --ink-faint:rgba(235,235,235,.38);
+  --rule:rgba(235,235,235,.12);
+  --up:#3ddc84;
+  --down:#ff5c5c;
+  --sans:"General Sans",system-ui,"Segoe UI",sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;overflow:hidden;background:transparent}
+body{font-family:var(--sans);color:var(--mist);-webkit-font-smoothing:antialiased}
+[hidden]{display:none!important}
+
+/* Fixed design canvas (--w x --h), scaled to fit the OBS source. */
+#stage{position:absolute;left:50%;top:50%;width:var(--w);height:var(--h);
+  transform:translate(-50%,-50%) scale(var(--s,1));transform-origin:center;
+  opacity:0;transition:opacity .6s ease}
+#stage.ready{opacity:1}
+
+/* Card background shared by the full-size layouts */
+.cardbg{position:absolute;inset:0;overflow:hidden;
+  background:
+    radial-gradient(1200px 700px at 18% 30%,#232327 0%,transparent 60%),
+    linear-gradient(160deg,#1b1b1e 0%,var(--bg) 55%,#0f0f11 100%)}
+
+/* ------------------------------------------------------------ plates */
+.lplate,.splate{display:inline-block;transform:skewX(-25deg);height:var(--ph,62px);line-height:var(--ph,62px);white-space:nowrap}
+.lplate>span,.splate>span{display:inline-block;transform:skewX(25deg)}
+.lplate{padding:0 .6em;border-bottom-left-radius:8px;font-size:var(--lfs,44px);font-weight:700;color:#fff;
+  text-shadow:2px 2px 1px #000,2px -2px 1px #000,-2px 2px 1px #000,-2px -2px 1px #000}
+.splate{min-width:1.8em;padding:0 .43em;text-align:center;border-top-right-radius:8px;border-left:2px solid #000;font-size:var(--sfs,42px);font-weight:600}
+
+/* ------------------------------------------------------------ avatar coin
+   Front: profile picture. Back: the driver's LFM livery screenshot. */
+.coin{position:relative;width:100%;height:100%;transform-style:preserve-3d;
+  transform:perspective(1800px) rotateY(0);transition:transform 1.2s cubic-bezier(.5,0,.2,1)}
+.coin.flipped{transform:perspective(1800px) rotateY(180deg)}
+.coin .face{position:absolute;inset:0;border-radius:50%;-webkit-backface-visibility:hidden;backface-visibility:hidden}
+.coin .front{background:#0d0d0f;padding:var(--coin-pad,10px)}
+.coin .front img{width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;background:#222}
+.coin .back{transform:rotateY(180deg);display:flex;flex-direction:column;align-items:center;justify-content:center}
+.coin .back::before{content:"";position:absolute;inset:0;border-radius:50%;
+  background:radial-gradient(circle at 50% 62%,rgba(var(--volt-rgb),.28),transparent 62%),#0d0d0f}
+.coin .back img{position:relative;width:122%;max-width:none;height:auto;margin-top:6%;
+  filter:drop-shadow(0 18px 16px rgba(0,0,0,.7))}
+.coin .back .cap{position:relative;margin-top:2%;font-size:var(--cap-fs,17px);font-weight:600;font-style:italic;
+  letter-spacing:.22em;text-transform:uppercase;color:var(--ink-soft);white-space:nowrap}
+.flip-pop{animation:flippop 1.2s cubic-bezier(.5,0,.2,1)}
+@keyframes flippop{50%{transform:scale(1.045)}}
+
+/* ------------------------------------------------------------ page rotator */
+.ptitle{flex:none;width:136px;align-self:stretch;display:flex;flex-direction:column;justify-content:center;gap:7px;
+  border-right:1px solid var(--rule);padding-right:18px}
+.ptitle span{font-size:15px;font-weight:700;font-style:italic;letter-spacing:.26em;color:var(--volt);transition:opacity .3s;white-space:nowrap}
+.ptitle span.swap{opacity:0}
+.ptitle span em{font-style:italic;color:var(--mist);margin-left:.4em}
+.ptitle i{display:block;height:3px;background:var(--rule);overflow:hidden}
+.ptitle i b{display:block;height:100%;width:100%;background:var(--volt);transform-origin:left;transform:scaleX(0)}
+.ptitle i b.run{animation:pbar linear forwards}
+@keyframes pbar{to{transform:scaleX(1)}}
+.pages{position:relative;flex:1;align-self:stretch;overflow:hidden}
+.page{position:absolute;inset:0;display:flex;align-items:center;gap:30px;opacity:0;transform:translateY(100%);
+  transition:transform .7s cubic-bezier(.2,.8,.2,1),opacity .7s}
+.page.on{opacity:1;transform:none}
+.page.off{opacity:0;transform:translateY(-100%)}
+
+.item{display:flex;align-items:center;gap:12px;white-space:nowrap}
+.item .k{font-size:.79em;letter-spacing:.24em;color:var(--ink-faint);font-style:italic;text-transform:uppercase}
+.item .v{font-weight:600}
+.item .sub{color:var(--ink-faint);font-style:italic}
+.item img.flag{width:36px;height:24px;object-fit:cover;transform:skewX(-14deg);border-radius:2px 4px 2px 4px}
+.door{display:inline-block;transform:skewX(-14deg);border:2px solid var(--volt);padding:0 12px;line-height:32px;border-radius:2px 6px 2px 6px}
+.door b{display:inline-block;transform:skewX(14deg);font-size:22px;font-weight:700;font-style:italic;color:var(--volt);letter-spacing:.02em}
+svg.wx{width:30px;height:30px;flex:none}
+.delta{font-weight:700;font-style:italic}
+.delta.up{color:var(--up)} .delta.down{color:var(--down)} .delta.flat{color:var(--ink-faint)}
+
+/* Form guide: last finishes, oldest left */
+.form{display:flex;align-items:center;gap:10px}
+.form b{display:inline-grid;place-items:center;min-width:52px;height:30px;padding:0 8px;transform:skewX(-14deg);
+  border-radius:2px 5px 2px 5px;font-size:16px;font-weight:700;font-style:italic;background:rgba(235,235,235,.08);color:var(--ink-soft)}
+.form b>em{display:inline-block;transform:skewX(14deg);font-style:italic}
+.form b.win{background:var(--volt);color:var(--on-volt)}
+.form b.pod{box-shadow:inset 0 0 0 2px var(--volt);color:var(--volt)}
+.form b.top{background:rgba(235,235,235,.16);color:var(--mist)}
+.form b.dnf{background:rgba(255,92,92,.18);color:var(--down)}
+.form .latest{font-size:13px;letter-spacing:.24em;font-style:italic;color:var(--ink-faint);text-transform:uppercase}
+
+/* Field ticker: same-class drivers around this one */
+.field{flex:1;align-self:stretch;position:relative;overflow:hidden;
+  -webkit-mask-image:linear-gradient(90deg,transparent 0,#000 24px,#000 calc(100% - 48px),transparent 100%);
+          mask-image:linear-gradient(90deg,transparent 0,#000 24px,#000 calc(100% - 48px),transparent 100%)}
+.ftrack{position:absolute;left:0;top:0;bottom:0;display:flex;align-items:center;gap:40px;padding:0 48px 0 24px;will-change:transform}
+.rv{display:flex;align-items:center;gap:8px;min-width:0;letter-spacing:.04em;font-size:18px;white-space:nowrap}
+.rv .rdoor{flex:none;font-size:15px;font-weight:700;color:#111;background:var(--mist);padding:0 8px;line-height:24px;transform:skewX(-14deg);border-radius:2px 5px 2px 5px}
+.rv .rdoor>em{display:inline-block;transform:skewX(14deg);font-style:italic}
+.rv img{flex:none;width:26px;height:17px;object-fit:cover}
+.rv .rname{font-weight:600}
+.rv .relo{flex:none;color:var(--ink-faint);font-style:italic;font-size:16px}
+.rv.me .rdoor{background:var(--volt);color:var(--on-volt)}
+.rv.me .rname{color:var(--volt)}
+
+/* ------------------------------------------------------------ celebrations
+   A volt band sweeps across the stage with the headline, then exits right. */
+.celebrate{position:absolute;inset:0;z-index:50;pointer-events:none;overflow:hidden;border-radius:inherit}
+.celebrate .wash{position:absolute;inset:0;opacity:0;
+  background:radial-gradient(ellipse at 50% 50%,rgba(var(--volt-rgb),.22),rgba(0,0,0,.55) 70%);
+  animation:cwash var(--cdur) ease forwards}
+.celebrate .band{position:absolute;left:-12%;right:-12%;top:50%;height:var(--cb-h,250px);margin-top:calc(var(--cb-h,250px) / -2);
+  background:var(--volt);transform:skewY(var(--cb-skew,-4deg)) translateX(-110%);
+  box-shadow:0 0 80px rgba(var(--volt-rgb),.45);animation:cband var(--cdur) cubic-bezier(.75,0,.2,1) forwards}
+.celebrate .band::after{content:"";position:absolute;inset:0;
+  background:linear-gradient(105deg,transparent 30%,rgba(255,255,255,.55) 45%,transparent 60%);
+  transform:translateX(-100%);animation:cshine var(--cdur) ease forwards}
+.celebrate .streak{position:absolute;left:0;height:10px;width:46%;background:var(--volt);opacity:0;
+  transform:skewX(-30deg) translateX(-120%);animation:cstreak 1.1s cubic-bezier(.6,0,.3,1) forwards}
+.celebrate .txt{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:var(--cgap,10px);color:var(--on-volt);transform:skewY(var(--cb-skew,-4deg))}
+.celebrate .big{font-size:var(--cb-big,150px);font-weight:700;font-style:italic;line-height:.9;letter-spacing:-.01em;
+  text-transform:uppercase;white-space:nowrap;opacity:0;animation:ctext var(--cdur) cubic-bezier(.2,.8,.2,1) forwards}
+.celebrate .sub{display:flex;align-items:center;gap:18px;font-size:var(--cb-sub,28px);font-weight:600;font-style:italic;
+  letter-spacing:.28em;text-transform:uppercase;white-space:nowrap;opacity:0;animation:ctext var(--cdur) cubic-bezier(.2,.8,.2,1) .12s forwards}
+.celebrate .sub .lplate{--ph:1.7em;--lfs:1em;letter-spacing:.06em;font-style:normal}
+@keyframes cwash{0%{opacity:0}8%,86%{opacity:1}100%{opacity:0}}
+@keyframes cband{0%{transform:skewY(var(--cb-skew,-4deg)) translateX(-110%)}
+  11%,86%{transform:skewY(var(--cb-skew,-4deg)) translateX(0)}
+  100%{transform:skewY(var(--cb-skew,-4deg)) translateX(110%)}}
+@keyframes cshine{0%,12%{transform:translateX(-100%)}30%,100%{transform:translateX(100%)}}
+@keyframes cstreak{0%{opacity:1;transform:skewX(-30deg) translateX(-120%)}100%{opacity:1;transform:skewX(-30deg) translateX(330%)}}
+@keyframes ctext{0%,10%{opacity:0;transform:translateX(-80px)}18%,82%{opacity:1;transform:none}90%,100%{opacity:0;transform:translateX(80px)}}
+
+/* ------------------------------------------------------------ ambient motion
+   Slow, cheap (transform/opacity only) so the overlay never looks frozen.
+   ?motion=off adds .still to <html> and stops all of it. */
+@keyframes sweep{0%,70%{transform:translateX(-120%) skewX(-20deg)}100%{transform:translateX(220%) skewX(-20deg)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes drift{from{transform:scale(1) translateX(0)}to{transform:scale(1.07) translateX(-30px)}}
+@keyframes breathe{50%{opacity:.45}}
+@keyframes glow{50%{filter:drop-shadow(0 0 22px rgba(var(--volt-rgb),.55))}}
+@keyframes pulse{50%{opacity:.55}}
+@keyframes tick{0%{transform:scale(1)}12%{transform:scale(1.06)}30%{transform:scale(1)}}
+/* A light streak travelling along an element; put .shine inside it. */
+.shine{position:absolute;inset:0;overflow:hidden;pointer-events:none;border-radius:inherit}
+.shine::after{content:"";position:absolute;top:-20%;bottom:-20%;left:0;width:30%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.16),transparent);
+  animation:sweep var(--shine-dur,11s) ease-in-out var(--shine-delay,0s) infinite}
+/* Rotating glint on a ring of thickness --ring around a round element */
+.glint{position:absolute;inset:0;border-radius:50%;pointer-events:none;
+  background:conic-gradient(from 0deg,transparent 0 76%,rgba(255,255,255,.75) 86%,transparent 94%);
+  -webkit-mask:radial-gradient(circle,transparent calc(70.7% - var(--ring,9px) - 1px),#000 calc(70.7% - var(--ring,9px)));
+          mask:radial-gradient(circle,transparent calc(70.7% - var(--ring,9px) - 1px),#000 calc(70.7% - var(--ring,9px)));
+  animation:spin 9s linear infinite}
+.still *,.still *::before,.still *::after{animation-play-state:paused!important}
+.still .glint,.still .shine{display:none}

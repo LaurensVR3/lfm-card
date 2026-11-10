@@ -1,0 +1,391 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LFM Card</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/lfm-card/lfm.css">
+<style>
+.card{position:absolute;inset:0;overflow:hidden;border-radius:18px}
+
+/* Driver's own LFM banner, desaturated, bleeding in from the right, drifting slowly */
+.banner{position:absolute;right:-120px;top:0;width:1100px;height:100%;
+  background-size:cover;background-position:30% 50%;
+  filter:grayscale(1) contrast(1.15) brightness(.5);opacity:.5;
+  -webkit-mask-image:linear-gradient(90deg,transparent 0%,#000 45%,#000 80%,transparent 100%);
+          mask-image:linear-gradient(90deg,transparent 0%,#000 45%,#000 80%,transparent 100%);
+  animation:drift 40s ease-in-out infinite alternate}
+/* A soft light band crossing the card now and then */
+.sheen{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.sheen::after{content:"";position:absolute;top:-10%;bottom:-10%;left:0;width:38%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.045) 50%,transparent);
+  animation:sweep 14s ease-in-out infinite}
+
+/* Corner stripes; the thin ones breathe */
+.stripes{position:absolute;width:240px;height:240px;pointer-events:none}
+.stripes i{position:absolute;display:block;background:var(--volt);height:34px;width:420px;transform:rotate(-45deg);transform-origin:center;overflow:hidden}
+.stripes i:nth-child(2){animation:breathe 5s ease-in-out infinite}
+.stripes.br i:nth-child(2){animation-delay:-2.5s}
+.stripes i::after{content:"";position:absolute;inset:0;width:25%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.6),transparent);
+  animation:sweep 9s ease-in-out infinite}
+.stripes.br i::after{animation-delay:-4.5s}
+.stripes.tl{left:0;top:0}
+.stripes.tl i:nth-child(1){left:-250px;top:20px}
+.stripes.tl i:nth-child(2){left:-210px;top:90px;height:14px;opacity:.85}
+.stripes.br{right:0;bottom:0}
+.stripes.br i:nth-child(1){left:70px;top:186px}
+.stripes.br i:nth-child(2){left:40px;top:120px;height:14px;opacity:.85}
+
+.logo{position:absolute;right:64px;top:54px;width:270px;height:auto}
+.team-logo{position:absolute;right:64px;top:44px;height:96px;width:96px;border-radius:14px;object-fit:cover}
+
+/* Avatar: volt ring with a travelling glint, coin inside flips to the livery */
+.avatar{position:absolute;left:78px;top:92px;width:420px;height:420px;border-radius:50%;
+  background:var(--volt);padding:9px;--ring:9px;
+  filter:drop-shadow(0 0 28px rgba(var(--volt-rgb),.18));animation:glow 6s ease-in-out infinite}
+.avatar::before{content:"";position:absolute;inset:-14px;border-radius:50%;border:2px solid rgba(235,235,235,.10)}
+.avatar .orbit{position:absolute;inset:-14px;border-radius:50%;animation:spin 24s linear infinite}
+.avatar .orbit::after{content:"";position:absolute;left:50%;top:-4px;width:8px;height:8px;margin-left:-4px;border-radius:50%;
+  background:var(--volt);box-shadow:0 0 12px rgba(var(--volt-rgb),.9)}
+
+.ident{position:absolute;left:570px;top:120px;width:940px}
+.eyebrow{display:flex;align-items:center;gap:18px;font-size:19px;font-style:italic;font-weight:500;letter-spacing:.32em;text-transform:uppercase;color:var(--ink-faint);white-space:nowrap}
+.eyebrow .tick{width:30px;height:20px;background:var(--volt);transform:skewX(-25deg)}
+.eyebrow .team{color:var(--volt);font-weight:600}
+.eyebrow .sep{width:1px;height:22px;background:var(--rule)}
+.name{margin-top:34px;font-weight:700;font-style:italic;text-transform:uppercase;line-height:.92;letter-spacing:-.005em}
+.name span{display:block;width:max-content;white-space:nowrap}
+.name .last{color:var(--volt)}
+.origin{margin-top:30px;display:flex;align-items:center;gap:22px}
+.origin img{width:60px;height:40px;object-fit:cover;transform:skewX(-14deg);border-radius:2px 6px 2px 6px;box-shadow:0 0 0 1px rgba(0,0,0,.6)}
+.origin span{font-size:22px;font-weight:500;letter-spacing:.32em;text-transform:uppercase}
+.sim{margin-top:28px;font-size:18px;font-style:italic;letter-spacing:.3em;text-transform:uppercase;color:var(--ink-faint);white-space:nowrap}
+
+/* Rating box */
+.rating{position:absolute;right:92px;top:368px;width:420px;height:210px}
+.rating .frame{position:absolute;inset:0;
+  clip-path:polygon(9% 0,100% 0,100% 100%,0 100%,0 22%);
+  background:linear-gradient(135deg,rgba(var(--volt-rgb),.95),rgba(var(--volt-rgb),.25) 55%,rgba(var(--volt-rgb),.75))}
+.rating .fill{position:absolute;inset:3px;overflow:hidden;
+  clip-path:polygon(9% 0,100% 0,100% 100%,0 100%,0 22%);
+  background:linear-gradient(160deg,rgba(28,28,31,.96),rgba(14,14,16,.92))}
+.rating .fill .shine{--shine-dur:12s;--shine-delay:-3s}
+.rating .label{position:absolute;left:66px;top:34px;font-size:21px;font-weight:500;letter-spacing:.32em;color:var(--mist)}
+.rating .value{position:absolute;left:58px;top:58px;font-size:112px;font-weight:700;font-style:italic;letter-spacing:-.01em;line-height:1;font-variant-numeric:tabular-nums}
+.rating .races{position:absolute;left:66px;bottom:22px;font-size:16px;font-style:italic;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-faint)}
+.rating .slash{position:absolute;right:42px;top:66px;width:46px;height:96px;background:var(--volt);transform:skewX(-28deg)}
+
+/* Stats bar */
+.stats{position:absolute;left:96px;top:592px;width:1140px;height:166px}
+.stats .bg{position:absolute;inset:0;clip-path:polygon(4% 0,100% 0,96% 100%,0 100%);
+  background:linear-gradient(90deg,rgba(30,30,34,.94),rgba(22,22,25,.86));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06)}
+.stats .bg .shine{--shine-dur:16s;--shine-delay:-8s}
+.stats .edge{position:absolute;left:-30px;top:-6px;width:12px;height:178px;background:var(--volt);transform:skewX(-28deg);animation:breathe 4s ease-in-out infinite}
+.stats .row{position:absolute;inset:0 70px 0 80px;display:grid;grid-template-columns:1.3fr auto 1.15fr auto .75fr;align-items:center}
+.stats .div{width:2px;height:96px;background:var(--rule);transform:skewX(-14deg)}
+.stat{display:flex;align-items:center;gap:26px;padding-left:18px}
+.stat .icon{flex:none;width:78px;height:68px;display:grid;place-items:center}
+.stat .k{white-space:nowrap;font-size:18px;font-weight:500;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-soft)}
+.stat .v{margin-top:4px;font-size:58px;font-weight:700;font-style:italic;line-height:1;text-transform:uppercase;white-space:nowrap}
+.v.volt{color:var(--volt)}
+.stat .icon.lfm{width:118px;height:auto}
+.stat .icon.lfm img{width:118px;height:auto;display:block}
+.stat .v.plates{margin-top:10px;display:flex;align-items:center;font-style:normal}
+.v.plates small{font-size:24px;font-weight:600;color:var(--ink-soft);margin-left:18px;letter-spacing:.02em;font-style:italic}
+
+/* Status strip: tagline / next race / live / last result */
+.next{position:absolute;left:96px;right:96px;top:776px;height:50px;display:flex;align-items:center;gap:26px;font-size:20px;letter-spacing:.14em;text-transform:uppercase;white-space:nowrap}
+.next .tag{display:flex;align-items:center;height:42px;padding:0 22px;background:var(--volt);color:var(--on-volt);font-weight:700;font-style:italic;letter-spacing:.2em;clip-path:polygon(12px 0,100% 0,calc(100% - 12px) 100%,0 100%)}
+.next .series{font-weight:600;color:var(--mist);letter-spacing:.08em;text-transform:none;font-size:24px;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.next .meta{color:var(--ink-faint);font-style:italic}
+.next .drivers{color:var(--mist)}
+.next .when{margin-left:auto;display:flex;align-items:baseline;gap:16px}
+.next .when .clock{font-weight:700;font-style:italic;font-size:30px;color:var(--volt);letter-spacing:.04em;font-variant-numeric:tabular-nums}
+.next .when .at{color:var(--ink-faint);font-style:italic}
+.next .when .delta{font-size:22px}
+.next.live .tag{animation:pulse 1.4s ease-in-out infinite}
+.next.soon .clock{animation:tick 1s ease-out infinite}
+.tagline{font-style:italic;letter-spacing:.42em;color:var(--ink-faint)}
+
+/* Rotating details row */
+.race{position:absolute;left:104px;right:96px;top:834px;height:44px;display:flex;align-items:center;gap:22px;
+  font-size:19px;letter-spacing:.12em;text-transform:uppercase;white-space:nowrap;color:var(--mist)}
+</style>
+</head>
+<body>
+<div id="stage">
+  <div class="card cardbg" data-celebrate>
+    <div class="banner" id="banner"></div>
+    <div class="sheen"></div>
+    <div class="stripes tl"><i></i><i></i></div>
+    <div class="stripes br"><i></i><i></i></div>
+
+    <img class="logo" id="logo" src="/logo.svg" alt="Lavaro">
+    <img class="team-logo" id="teamLogo" alt="" hidden>
+
+    <div class="avatar" data-pop>
+      <div class="orbit"></div>
+      <div class="coin" id="coin">
+        <div class="face front"><img alt=""></div>
+        <div class="face back"><img alt=""><span class="cap"></span></div>
+      </div>
+      <div class="glint"></div>
+    </div>
+
+    <div class="ident">
+      <div class="eyebrow">
+        <span class="tick"></span><span class="team" id="team">—</span>
+        <span class="sep"></span><span>Driver profile</span>
+      </div>
+      <div class="name" id="name"><span class="first" id="first">—</span><span class="last" id="last"></span></div>
+      <div class="origin"><img id="flag" alt=""><span id="country">—</span></div>
+      <div class="sim" id="sim">—</div>
+    </div>
+
+    <div class="rating">
+      <div class="frame"></div><div class="fill"><div class="shine"></div></div>
+      <div class="label">LFM RATING</div>
+      <div class="value" id="rating">—</div>
+      <div class="races" id="races"></div>
+      <div class="slash"></div>
+    </div>
+
+    <div class="stats">
+      <div class="edge"></div>
+      <div class="bg"><div class="shine"></div></div>
+      <div class="row">
+        <div class="stat">
+          <div class="icon lfm"><img src="/lfm-card/lfm-logo.svg" alt="LFM"></div>
+          <div><div class="k">Licence</div><div class="v plates"><span class="lplate" id="licencePlate"><span id="licence">—</span></span></div></div>
+        </div>
+        <div class="div"></div>
+        <div class="stat">
+          <div class="icon">
+            <svg width="62" height="70" viewBox="0 0 62 70" fill="none" aria-hidden="true">
+              <path d="M31 3 57 12v20c0 17-11 28-26 35C16 60 5 49 5 32V12L31 3Z" stroke="#8a8a90" stroke-width="5" stroke-linejoin="round"/>
+              <path d="M31 13 48 19v13c0 11-7 19-17 24-10-5-17-13-17-24V19l17-6Z" fill="#8a8a90" opacity=".25"/>
+              <path d="m22 30 8 13 12-20" stroke="#cfcfd4" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div><div class="k">Safety rating</div><div class="v plates"><span class="splate" id="srPlate"><span id="sr">—</span></span><small id="srNum"></small></div></div>
+        </div>
+        <div class="div"></div>
+        <div class="stat">
+          <div class="icon">
+            <svg width="70" height="64" viewBox="0 0 70 64" aria-hidden="true" style="fill:var(--volt)">
+              <path d="M20 0h48l-6 14H14z"/><path d="M12 25h40l-6 14H6z"/><path d="M8 50h48l-6 14H2z"/>
+            </svg>
+          </div>
+          <div><div class="k">Division</div><div class="v volt" id="division">—</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="next" id="next">
+      <span class="tagline" id="tagline">Drive &nbsp;/&nbsp; Improve &nbsp;/&nbsp; Compete</span>
+      <span class="tag" id="nextTag" hidden>Next race</span>
+      <span class="series" id="nextSeries" hidden></span>
+      <span class="meta" id="nextMeta" hidden></span>
+      <span class="drivers" id="nextDrivers" hidden></span>
+      <span class="when" id="nextWhen" hidden><span class="at" id="nextAt"></span><span class="delta" id="nextDelta"></span><span class="clock" id="nextClock"></span></span>
+    </div>
+
+    <div class="race" id="race" hidden>
+      <div class="ptitle"><span id="pageTitle">Race</span><i><b id="pageBar"></b></i></div>
+      <div class="pages" id="pages">
+        <!-- Upcoming / live race -->
+        <div class="page" data-title="Race" id="pageRace">
+          <span class="item" id="raceTrack"><img class="flag" id="raceTrackFlag" alt=""><span class="v" id="raceTrackName"></span><span class="sub" id="raceTrackKm"></span></span>
+          <span class="item" id="raceCar"><span class="k">Car</span><span class="v" id="raceCarName"></span></span>
+          <span class="item" id="raceDoor"><span class="k">Door</span><span class="door"><b id="raceDoorNo"></b></span></span>
+          <span class="item" id="raceSeed"><span class="k">Seed</span><span class="v" id="raceSeedPos"></span><span class="sub" id="raceSeedOf"></span></span>
+          <span class="item" id="raceSof"><span class="k">SOF</span><span class="v" id="raceSofVal"></span></span>
+        </div>
+        <div class="page" data-title="Conditions" id="pageConditions">
+          <span class="item" id="wx"><span id="wxIcon"></span><span class="v" id="wxLabel"></span><span class="sub" id="wxTemp"></span></span>
+          <span class="item" id="wxRain"><span class="k">Rain</span><span class="v" id="wxRainVal"></span></span>
+          <span class="item" id="wxVar"><span class="k">Weather</span><span class="v" id="wxVarVal"></span></span>
+          <span class="item" id="sessRace"><span class="k">Race</span><span class="v" id="sessRaceVal"></span></span>
+          <span class="item" id="sessOther"><span class="sub" id="sessOtherVal"></span></span>
+        </div>
+        <div class="page" data-title="SOF" id="pageField"><div class="field"><div class="ftrack" id="field"></div></div></div>
+        <div class="page" data-title="Last race" id="pageLast">
+          <span class="item"><span class="v" id="lastTrack"></span><span class="sub" id="lastAgo"></span></span>
+          <span class="item"><span class="k">Finish</span><span class="v" id="lastPos"></span><span class="delta" id="lastGain"></span></span>
+          <span class="item"><span class="k">Rating</span><span class="delta" id="lastElo"></span></span>
+          <span class="item" id="lastIncItem"><span class="k">Incidents</span><span class="v" id="lastInc"></span></span>
+        </div>
+        <!-- Result mode -->
+        <div class="page" data-title="Result" id="pageResult">
+          <span class="item"><span class="k">Start</span><span class="v" id="resStart"></span></span>
+          <span class="item"><span class="k">Finish</span><span class="v" id="resFinish"></span><span class="delta" id="resGain"></span></span>
+          <span class="item"><span class="k">Rating</span><span class="delta" id="resElo"></span></span>
+          <span class="item" id="resSrItem"><span class="k">SR</span><span class="delta" id="resSr"></span></span>
+          <span class="item" id="resIncItem"><span class="k">Incidents</span><span class="v" id="resInc"></span></span>
+          <span class="item" id="resLapItem"><span class="k">Best lap</span><span class="v" id="resLap"></span></span>
+        </div>
+        <div class="page" data-title="Form" id="pageForm"><div class="form" id="form"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/lfm-card/lfm.js"></script>
+<script>
+const {$, S} = LFM;
+LFM.fitStage(1600, 900);
+const coin = LFM.coin($("coin"));
+const rot = LFM.rotator({pages: $("pages"), title: $("pageTitle"), bar: $("pageBar")});
+const show = (id, on) => { $(id).hidden = !on; };
+const posText = r => r.dnf ? "DNF" : `P${r.finish}`;
+const gain = r => r.dnf || !r.start ? null : r.start - r.finish;
+function setDelta(el, n, text){ el.className = "delta " + LFM.deltaClass(n); el.textContent = text ?? LFM.signed(n); }
+function setGain(el, r){
+  const g = gain(r);
+  el.className = "delta " + LFM.deltaClass(g);
+  el.textContent = g ? `${g > 0 ? "▲" : "▼"}${Math.abs(g)}` : "";
+}
+
+function renderProfile(v){
+  $("first").textContent = v.first;
+  $("last").textContent = v.last;
+  const box = $("name"); let size = 96;
+  box.style.fontSize = size + "px";
+  while (Math.max($("first").scrollWidth, $("last").scrollWidth) > 680 && size > 48){ size -= 2; box.style.fontSize = size + "px"; }
+
+  $("team").textContent = v.team || "LFM";
+  $("logo").hidden = !v.lavaro;
+  $("teamLogo").hidden = v.lavaro || !v.teamLogo;
+  if (!v.lavaro && v.teamLogo) $("teamLogo").src = v.teamLogo;
+  coin.set(v, S.livery);
+  if (v.banner) $("banner").style.backgroundImage = `url("${v.banner}")`;
+  if (v.flag){ $("flag").src = v.flag; $("country").textContent = v.country; }
+
+  $("sim").textContent = v.simName;
+  $("rating").textContent = v.rating ?? "—";
+  LFM.fitText($("rating"), 225, 112, 72);  // keep clear of the slash
+  $("races").textContent = v.races != null ? `${v.races} ranked races` : "";
+  LFM.paintLicence($("licencePlate"), $("licence"), v.licence);
+  LFM.fitText($("licencePlate"), 300, 44, 26);
+  LFM.paintSR($("srPlate"), $("sr"), v.sr);
+  $("srNum").textContent = v.srNum;
+  $("division").textContent = v.division ?? "—";
+}
+
+// Strip above the details row. Re-run every second for the countdown.
+function renderStrip(){
+  const mode = S.mode === "next" && S.next.start <= Date.now() ? "live" : S.mode;
+  const race = mode === "next" || mode === "live", res = mode === "result";
+  for (const id of ["nextTag","nextSeries","nextMeta","nextWhen"]) show(id, race || res);
+  show("tagline", !race && !res);
+  $("next").classList.toggle("live", mode === "live");
+  $("next").classList.remove("soon");
+  if (race){
+    const n = S.next, r = LFM.currentRace();
+    $("nextTag").textContent = mode === "live" ? "Racing now" : "Next race";
+    $("nextSeries").textContent = n.series;
+    $("nextMeta").textContent = [n.raceId, n.split].filter(Boolean).join("  /  ");
+    const drivers = (r && r.drivers) || n.drivers;
+    $("nextDrivers").textContent = drivers ? `${drivers} ${drivers == 1 ? "driver" : "drivers"}` : "";
+    show("nextDrivers", !!drivers);
+    $("nextAt").textContent = n.start.toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"});
+    $("nextDelta").textContent = "";
+    const diff = n.start - Date.now();
+    $("nextClock").textContent = mode === "live" ? "LIVE" : `in ${LFM.countdown(diff)}`;
+    $("next").classList.toggle("soon", diff > 0 && diff < 60e3);
+  } else if (res){
+    const r = S.result;
+    $("nextTag").textContent = "Last race";
+    $("nextSeries").textContent = r.series;
+    $("nextMeta").textContent = [r.track, LFM.ago(r.date)].filter(Boolean).join("  /  ");
+    show("nextDrivers", false);
+    $("nextAt").textContent = r.start && !r.dnf ? `from P${r.start}` : "";
+    setGain($("nextDelta"), r);
+    $("nextClock").textContent = posText(r);
+  }
+}
+
+function renderPages(){
+  const mode = S.mode, r = LFM.currentRace(), res = S.result;
+  const race = (mode === "next" || mode === "live") && r;
+  for (const id of ["pageRace","pageConditions","pageField","pageLast","pageResult","pageForm"]) $(id).dataset.empty = "1";
+
+  if (race){
+    $("pageRace").dataset.empty = "";
+    show("raceTrack", !!r.track);
+    if (r.track){
+      $("raceTrackName").textContent = r.track.name;
+      $("raceTrackKm").textContent = r.track.km ? `${(r.track.km / 1000).toFixed(1)} km` : "";
+      $("raceTrackFlag").hidden = !r.track.country;
+      if (r.track.country) $("raceTrackFlag").src = LFM.flagUrl(r.track.country);
+    }
+    show("raceCar", !!r.car); $("raceCarName").textContent = r.car || "";
+    show("raceDoor", !!r.door); $("raceDoorNo").textContent = r.door ? `#${r.door}` : "";
+    show("raceSeed", !!r.seed);
+    $("raceSeedPos").textContent = r.seed ? `P${r.seed}` : "";
+    $("raceSeedOf").textContent = r.seed ? `of ${r.classSize} ${r.carClass || ""}`.trim() : "";
+    show("raceSof", !!r.sof); $("raceSofVal").textContent = r.sof || "";
+    // Long class names (RR "Super Touring") can push the row past the edge.
+    if (LFM.overflows($("pageRace"))) $("raceSeedOf").textContent = `of ${r.classSize}`;
+
+    renderConditions(r);
+    LFM.renderRivals($("field"), r.field);
+    $("pageField").dataset.empty = r.field.length > 1 ? "" : "1";
+    $("pageField").dataset.value = r.sof || "";
+
+    if (res){
+      $("pageLast").dataset.empty = "";
+      $("lastTrack").textContent = res.track;
+      $("lastAgo").textContent = LFM.ago(res.date);
+      $("lastPos").textContent = posText(res);
+      setGain($("lastGain"), res);
+      setDelta($("lastElo"), res.elo);
+      show("lastIncItem", res.incidents != null); $("lastInc").textContent = res.incidents;
+    }
+  } else if (mode === "result"){
+    $("pageResult").dataset.empty = "";
+    $("resStart").textContent = res.start ? `P${res.start}` : "—";
+    $("resFinish").textContent = posText(res);
+    setGain($("resGain"), res);
+    setDelta($("resElo"), res.elo);
+    show("resSrItem", res.sr != null); setDelta($("resSr"), res.sr, LFM.signed(res.sr, 2));
+    show("resIncItem", res.incidents != null); $("resInc").textContent = res.incidents;
+    show("resLapItem", !!res.bestLap); $("resLap").textContent = res.bestLap || "";
+  }
+  if (mode === "result" && S.form.length > 1){
+    $("pageForm").dataset.empty = "";
+    LFM.renderForm($("form"), S.form);
+  }
+  for (const id of ["pageRace","pageConditions","pageLast","pageResult"]) LFM.tighten($(id));
+  $("race").hidden = ![...$("pages").children].some(p => !p.dataset.empty);
+  rot.refresh();
+}
+
+function renderConditions(r){
+  const w = r.weather;
+  show("wx", !!w); show("wxVar", !!w);
+  show("wxRain", !!w && w.rain != null);  // only ACC/AC give a rain level
+  if (w){
+    $("wxIcon").innerHTML = LFM.WX_ICONS[w.icon];
+    $("wxLabel").textContent = w.label;
+    $("wxTemp").textContent = w.temp != null ? `${w.temp}°C` : "";
+    $("wxRainVal").textContent = w.rain != null ? `${Math.round(w.rain * 100)}%` : "";
+    $("wxVarVal").textContent = w.mode || "";
+  }
+  show("sessRace", !!r.raceMinutes);
+  $("sessRaceVal").textContent = r.raceMinutes ? `${r.raceMinutes} min` : "";
+  const names = {P: "Practice", Q: "Quali"};
+  const others = r.sessions.filter(x => names[x.type]).map(x => `${names[x.type]} ${x.minutes} min`);
+  $("sessOtherVal").textContent = others.join("  ·  ");
+  show("sessOther", others.length > 0);
+  $("pageConditions").dataset.empty = w || r.raceMinutes ? "" : "1";
+}
+
+LFM.start(() => { renderProfile(S.view); renderStrip(); renderPages(); });
+setInterval(() => { if (S.view) renderStrip(); }, 1000);
+</script>
+</body>
+</html>

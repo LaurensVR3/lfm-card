@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LFM Lower Third</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/lfm-card/lfm.css">
+<style>
+/* 1600x200 canvas: avatar coin on the left, slanted panel to the right. */
+.panel,.cel{position:absolute;left:120px;right:16px;top:30px;height:140px;
+  clip-path:polygon(28px 0,100% 0,calc(100% - 28px) 100%,0 100%)}
+.cel{z-index:3;pointer-events:none}
+.panel{
+  background:linear-gradient(90deg,rgba(30,30,34,.97),rgba(20,20,23,.94));overflow:hidden}
+.panel .shine{--shine-dur:14s}
+.panel::before{content:"";position:absolute;left:0;right:0;bottom:0;height:3px;background:var(--volt);opacity:.9}
+.edge{position:absolute;left:96px;top:24px;width:14px;height:152px;background:var(--volt);transform:skewX(-11.3deg);animation:breathe 4s ease-in-out infinite}
+
+.avatar{position:absolute;left:8px;top:8px;width:184px;height:184px;border-radius:50%;z-index:4;
+  background:var(--volt);padding:6px;--ring:6px;--coin-pad:5px;--cap-fs:10px;
+  filter:drop-shadow(0 0 14px rgba(0,0,0,.6))}
+
+.row{position:absolute;left:220px;right:56px;top:30px;height:140px;display:flex;align-items:center;gap:30px}
+.div{flex:none;width:2px;height:80px;background:var(--rule);transform:skewX(-11deg)}
+
+.ident{flex:none;width:430px;min-width:0}
+.eyebrow{display:flex;align-items:center;gap:12px;font-size:14px;font-style:italic;font-weight:500;letter-spacing:.28em;text-transform:uppercase;color:var(--ink-faint);white-space:nowrap}
+.eyebrow .tick{width:20px;height:13px;background:var(--volt);transform:skewX(-25deg)}
+.eyebrow .team{color:var(--volt);font-weight:600}
+.eyebrow img{width:26px;height:17px;object-fit:cover;transform:skewX(-14deg);border-radius:1px 3px 1px 3px}
+.name{margin-top:8px;font-size:50px;font-weight:700;font-style:italic;line-height:1;text-transform:uppercase;white-space:nowrap;width:max-content}
+.name .last{color:var(--volt)}
+.sim{margin-top:8px;font-size:13px;font-style:italic;letter-spacing:.26em;text-transform:uppercase;color:var(--ink-faint);white-space:nowrap}
+
+.rating{flex:none;width:170px}
+.k{font-size:13px;font-weight:500;letter-spacing:.26em;text-transform:uppercase;color:var(--ink-soft);white-space:nowrap}
+.rating .value{font-size:62px;font-weight:700;font-style:italic;line-height:1;font-variant-numeric:tabular-nums;margin-top:4px}
+
+.plates{flex:none;display:flex;flex-direction:column;gap:10px;--ph:38px;--lfs:26px;--sfs:24px}
+.plates>div{display:flex;align-items:center}
+.plates small{font-size:16px;font-weight:600;color:var(--ink-soft);margin-left:12px;font-style:italic}
+
+/* Rotating info: each page is a small label over a big value */
+.info{flex:1;min-width:0;align-self:stretch;position:relative;display:flex;flex-direction:column}
+.info .pages{flex:1}
+.info .page{flex-direction:column;align-items:flex-start;justify-content:center;gap:6px}
+.info .lbl{font-size:14px;font-weight:700;font-style:italic;letter-spacing:.26em;text-transform:uppercase;color:var(--volt);white-space:nowrap}
+.info .lbl em{color:var(--ink-faint);font-style:italic;margin-left:.6em;font-weight:500}
+.info .big{display:flex;align-items:center;gap:14px;font-size:40px;font-weight:700;font-style:italic;line-height:1;text-transform:uppercase;white-space:nowrap;font-variant-numeric:tabular-nums}
+.info .big img{width:42px;height:28px;object-fit:cover;transform:skewX(-14deg);border-radius:2px 4px 2px 4px}
+.info .big .delta{font-size:28px}
+.info .small{font-size:16px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);font-style:italic;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.info .volt{color:var(--volt)}
+.info .tagline{font-size:18px;font-style:italic;letter-spacing:.38em;color:var(--ink-faint);text-transform:uppercase}
+.info .form b{min-width:44px;height:28px;font-size:15px}
+.info .form .latest{display:none}
+.info .bar{position:absolute;left:0;right:0;bottom:14px;height:2px;background:var(--rule);overflow:hidden}
+.info .bar b{display:block;height:100%;width:100%;background:var(--volt);transform-origin:left;transform:scaleX(0)}
+.info .bar b.run{animation:pbar linear forwards}
+.live-dot{display:inline-block;width:14px;height:14px;border-radius:50%;background:var(--down);animation:pulse 1.2s ease-in-out infinite}
+
+.avatar .cap{display:none}
+.avatar .coin .back img{margin-top:0}
+/* Celebration fills the panel instead of crossing the whole canvas */
+.cel .celebrate .wash{display:none}
+.cel .celebrate .band{top:0;margin-top:0;height:100%;left:-4%;right:-4%}
+.cel{--cb-skew:0deg;--cb-big:58px;--cb-sub:16px;--cgap:6px}
+</style>
+</head>
+<body>
+<div id="stage">
+  <div class="edge"></div>
+  <div class="panel"><div class="shine"></div></div>
+  <div class="avatar" data-pop>
+    <div class="coin" id="coin">
+      <div class="face front"><img alt=""></div>
+      <div class="face back"><img alt=""><span class="cap"></span></div>
+    </div>
+    <div class="glint"></div>
+  </div>
+
+  <div class="row">
+    <div class="ident">
+      <div class="eyebrow"><span class="tick"></span><span class="team" id="team">—</span><img id="flag" alt=""><span id="country"></span></div>
+      <div class="name" id="name"><span id="first"></span> <span class="last" id="last"></span></div>
+      <div class="sim" id="sim"></div>
+    </div>
+    <div class="div"></div>
+    <div class="rating"><div class="k">LFM Rating</div><div class="value" id="rating">—</div></div>
+    <div class="div"></div>
+    <div class="plates">
+      <div><span class="lplate" id="licencePlate"><span id="licence">—</span></span></div>
+      <div><span class="splate" id="srPlate"><span id="sr">—</span></span><small id="srNum"></small></div>
+    </div>
+    <div class="div"></div>
+    <div class="info">
+      <div class="pages" id="pages">
+        <!-- Upcoming / live race -->
+        <div class="page" data-title="Next" id="pNext">
+          <div class="lbl" id="nextLbl">Next race</div>
+          <div class="big volt" id="nextClock"></div>
+          <div class="small" id="nextSeries"></div>
+        </div>
+        <div class="page" data-title="Track" id="pTrack">
+          <div class="lbl">Track <em id="trackKm"></em></div>
+          <div class="big"><img id="trackFlag" alt=""><span id="trackName"></span></div>
+          <div class="small" id="trackCar"></div>
+        </div>
+        <div class="page" data-title="Grid" id="pGrid">
+          <div class="lbl">Grid <em id="gridSof"></em></div>
+          <div class="big"><span id="gridDoor"></span><span id="gridSeed" class="volt"></span></div>
+          <div class="small" id="gridOf"></div>
+        </div>
+        <!-- Result mode -->
+        <div class="page" data-title="Result" id="pResult">
+          <div class="lbl">Last race <em id="resAgo"></em></div>
+          <div class="big"><span id="resPos" class="volt"></span><span class="delta" id="resGain"></span><span class="delta" id="resElo"></span></div>
+          <div class="small" id="resTrack"></div>
+        </div>
+        <div class="page" data-title="Details" id="pDetails">
+          <div class="lbl">Race details</div>
+          <div class="big" id="detBig"></div>
+          <div class="small" id="detSmall"></div>
+        </div>
+        <div class="page" data-title="Form" id="pForm">
+          <div class="lbl">Form <em>last 10</em></div>
+          <div class="form" id="form"></div>
+        </div>
+        <!-- Nothing scheduled -->
+        <div class="page" data-title="Idle" id="pIdle"><div class="tagline">Drive / Improve / Compete</div></div>
+      </div>
+      <div class="bar"><b id="bar"></b></div>
+    </div>
+  </div>
+  <div class="cel" data-celebrate></div>
+</div>
+
+<script src="/lfm-card/lfm.js"></script>
+<script>
+const {$, S} = LFM;
+LFM.fitStage(1600, 200);
+const coin = LFM.coin($("coin"));
+const rot = LFM.rotator({pages: $("pages"), bar: $("bar"), pageMs: 7000});
+const posText = r => r.dnf ? "DNF" : `P${r.finish}`;
+
+function renderProfile(v){
+  $("first").textContent = v.first; $("last").textContent = v.last;
+  LFM.fitText($("name"), 430, 50, 28);
+  $("team").textContent = v.team || "LFM";
+  if (v.flag){ $("flag").src = v.flag; $("country").textContent = v.origin; }
+  $("sim").textContent = v.simName;
+  $("rating").textContent = v.rating ?? "—";
+  LFM.fitText($("rating"), 170, 62, 40);
+  LFM.paintLicence($("licencePlate"), $("licence"), v.licence);
+  LFM.fitText($("licencePlate"), 210, 26, 16);
+  LFM.paintSR($("srPlate"), $("sr"), v.sr);
+  $("srNum").textContent = v.srNum;
+  coin.set(v, S.livery);
+}
+
+function renderClock(){
+  if (S.mode !== "next" && S.mode !== "live") return;
+  const n = S.next, diff = n.start - Date.now();
+  $("nextLbl").innerHTML = "";
+  $("nextLbl").append(diff > 0 ? "Next race" : "Racing now");
+  const em = document.createElement("em");
+  em.textContent = n.start.toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"});
+  $("nextLbl").append(em);
+  if (diff > 0) $("nextClock").textContent = `in ${LFM.countdown(diff)}`;
+  else { $("nextClock").innerHTML = '<span class="live-dot"></span>'; $("nextClock").append("Live"); }
+}
+
+function renderPages(){
+  const pages = [...$("pages").children];
+  pages.forEach(p => p.dataset.empty = "1");
+  const on = id => $(id).dataset.empty = "";
+  const r = LFM.currentRace(), res = S.result;
+
+  if (S.mode === "next" || S.mode === "live"){
+    on("pNext");
+    $("nextSeries").textContent = [S.next.series, S.next.split].filter(Boolean).join(" · ");
+    renderClock();
+    if (r && r.track){
+      on("pTrack");
+      $("trackName").textContent = r.track.name;
+      $("trackKm").textContent = r.track.km ? `${(r.track.km / 1000).toFixed(1)} km` : "";
+      $("trackFlag").hidden = !r.track.country;
+      if (r.track.country) $("trackFlag").src = LFM.flagUrl(r.track.country);
+      $("trackCar").textContent = [r.car, r.weather && r.weather.label, r.raceMinutes && `${r.raceMinutes} min race`].filter(Boolean).join(" · ");
+      LFM.fitText($("trackName"), 360, 40, 24);
+    }
+    if (r && r.door){
+      on("pGrid");
+      $("gridDoor").textContent = `#${r.door}`;
+      $("gridSeed").textContent = r.seed ? `P${r.seed}` : "";
+      $("gridOf").textContent = r.seed ? `Seed of ${r.classSize} ${r.carClass || ""} · ${r.drivers} drivers` : "";
+      $("gridSof").textContent = r.sof ? `SOF ${r.sof}` : "";
+    }
+  } else if (S.mode === "result"){
+    on("pResult");
+    $("resAgo").textContent = LFM.ago(res.date);
+    $("resPos").textContent = posText(res);
+    const g = res.dnf || !res.start ? 0 : res.start - res.finish;
+    $("resGain").className = "delta " + LFM.deltaClass(g);
+    $("resGain").textContent = g ? `${g > 0 ? "▲" : "▼"}${Math.abs(g)}` : "";
+    $("resElo").className = "delta " + LFM.deltaClass(res.elo);
+    $("resElo").textContent = res.elo != null ? `${LFM.signed(res.elo)} elo` : "";
+    $("resTrack").textContent = [res.track, res.series].filter(Boolean).join(" · ");
+    on("pDetails");
+    $("detBig").textContent = [res.start && `Start P${res.start}`, res.incidents != null && `${res.incidents} IP`].filter(Boolean).join("  ·  ");
+    $("detSmall").textContent = [res.bestLap && `Best lap ${res.bestLap}`, res.sr != null && `SR ${LFM.signed(res.sr, 2)}`, res.car].filter(Boolean).join(" · ");
+  } else on("pIdle");
+
+  if (S.mode !== "next" && S.mode !== "live" && S.form.length > 1){
+    on("pForm"); LFM.renderForm($("form"), S.form);
+  }
+  rot.refresh();
+}
+
+LFM.start(() => { renderProfile(S.view); renderPages(); });
+setInterval(() => { if (S.view) renderClock(); }, 1000);
+</script>
+</body>
+</html>

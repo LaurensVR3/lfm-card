@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LFM Starting Soon</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/lfm-card/lfm.css">
+<style>
+/* Full-screen 1600x900 pre-race scene: countdown left, livery right, driver + field at the bottom. */
+.scene{position:absolute;inset:0;overflow:hidden}
+.sheen{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.sheen::after{content:"";position:absolute;top:-10%;bottom:-10%;left:0;width:38%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.04) 50%,transparent);animation:sweep 14s ease-in-out infinite}
+.grid-lines{position:absolute;inset:0;opacity:.5;
+  background-image:linear-gradient(rgba(235,235,235,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(235,235,235,.035) 1px,transparent 1px);
+  background-size:64px 64px;
+  -webkit-mask-image:radial-gradient(ellipse at 70% 45%,#000 0%,transparent 70%);mask-image:radial-gradient(ellipse at 70% 45%,#000 0%,transparent 70%)}
+.stripes{position:absolute;width:240px;height:240px;pointer-events:none}
+.stripes i{position:absolute;display:block;background:var(--volt);height:34px;width:420px;transform:rotate(-45deg);overflow:hidden}
+.stripes i:nth-child(2){height:14px;opacity:.85;animation:breathe 5s ease-in-out infinite}
+.stripes i::after{content:"";position:absolute;inset:0;width:25%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.6),transparent);animation:sweep 9s ease-in-out infinite}
+.stripes.tl{left:0;top:0} .stripes.tl i:nth-child(1){left:-250px;top:20px} .stripes.tl i:nth-child(2){left:-210px;top:90px}
+.stripes.br{right:0;bottom:0} .stripes.br i:nth-child(1){left:70px;top:186px} .stripes.br i:nth-child(2){left:40px;top:120px;animation-delay:-2.5s}
+.logo{position:absolute;right:72px;top:60px;width:220px}
+.team-logo{position:absolute;right:72px;top:50px;width:96px;height:96px;border-radius:14px;object-fit:cover}
+
+/* Hero: livery (or avatar) floating on a glowing floor */
+.hero{position:absolute;right:40px;top:150px;width:860px;height:440px;display:grid;place-items:center}
+.hero .floor{position:absolute;left:12%;right:12%;bottom:40px;height:80px;border-radius:50%;
+  background:radial-gradient(ellipse,rgba(var(--volt-rgb),.38),transparent 70%);filter:blur(6px);animation:breathe 5s ease-in-out infinite}
+.hero img.car{position:relative;width:100%;height:auto;filter:drop-shadow(0 30px 24px rgba(0,0,0,.7));animation:bob 6s ease-in-out infinite}
+.hero .face{position:relative;width:340px;height:340px;border-radius:50%;background:var(--volt);padding:9px;--ring:9px;animation:bob 6s ease-in-out infinite}
+.hero .face img{width:100%;height:100%;border-radius:50%;object-fit:cover;border:10px solid #0d0d0f;display:block}
+.hero .carname{position:absolute;right:30px;bottom:0;font-size:18px;font-style:italic;letter-spacing:.3em;text-transform:uppercase;color:var(--ink-faint)}
+@keyframes bob{50%{transform:translateY(-10px)}}
+
+.left{position:absolute;left:96px;top:120px;width:760px}
+.eyebrow{display:flex;align-items:center;gap:18px;font-size:22px;font-style:italic;font-weight:600;letter-spacing:.34em;text-transform:uppercase;color:var(--volt);white-space:nowrap}
+.eyebrow .tick{width:34px;height:22px;background:var(--volt);transform:skewX(-25deg)}
+.live .eyebrow .tick{background:var(--down);animation:pulse 1.2s ease-in-out infinite}
+.series{margin-top:26px;font-size:52px;font-weight:700;font-style:italic;line-height:1;text-transform:uppercase;white-space:nowrap;width:max-content}
+.meta{margin-top:14px;font-size:20px;font-style:italic;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-faint);white-space:nowrap}
+.clock{margin-top:22px;font-size:200px;font-weight:700;font-style:italic;line-height:.9;letter-spacing:-.02em;color:var(--volt);font-variant-numeric:tabular-nums;white-space:nowrap;width:max-content}
+.soon .clock{animation:tick 1s ease-out infinite}
+.clock .delta{font-size:.36em;margin-left:.2em;letter-spacing:0}
+.sub{margin-top:18px;font-size:22px;letter-spacing:.24em;text-transform:uppercase;color:var(--ink-soft);font-style:italic;white-space:nowrap}
+.sub b{color:var(--mist);font-weight:600}
+.track{margin-top:34px;display:flex;align-items:center;gap:18px;font-size:36px;font-weight:700;font-style:italic;text-transform:uppercase;white-space:nowrap}
+.track img{width:54px;height:36px;object-fit:cover;transform:skewX(-14deg);border-radius:2px 6px 2px 6px}
+.track span.km{font-size:22px;font-weight:500;color:var(--ink-faint);letter-spacing:.12em}
+
+/* Info tiles */
+.tiles{position:absolute;left:96px;right:96px;top:640px;height:104px;display:flex;gap:14px}
+.tile{position:relative;flex:1 0 auto;padding:18px 26px;background:rgba(30,30,34,.85);
+  clip-path:polygon(14px 0,100% 0,calc(100% - 14px) 100%,0 100%);display:flex;flex-direction:column;justify-content:center;gap:8px}
+.tile::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--volt)}
+.tile .k{font-size:14px;font-weight:500;letter-spacing:.26em;text-transform:uppercase;color:var(--ink-faint);white-space:nowrap}
+.tile .v{display:flex;align-items:center;gap:10px;font-size:30px;font-weight:700;font-style:italic;text-transform:uppercase;white-space:nowrap}
+.tile .v svg.wx{width:34px;height:34px}
+.tile .v small{font-size:18px;font-weight:500;color:var(--ink-faint)}
+
+/* Bottom bar: driver + field ticker / form */
+.bottom{position:absolute;left:96px;right:96px;top:774px;height:84px;display:flex;align-items:center;gap:28px;
+  border-top:1px solid var(--rule);padding-top:12px}
+.me{flex:none;display:flex;align-items:center;gap:18px}
+.me .av{width:64px;height:64px;border-radius:50%;background:var(--volt);padding:3px}
+.me .av img{width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;border:3px solid #0d0d0f}
+.me .nm{font-size:28px;font-weight:700;font-style:italic;text-transform:uppercase;white-space:nowrap}
+.me .nm .last{color:var(--volt)}
+.me .rt{font-size:15px;letter-spacing:.24em;text-transform:uppercase;color:var(--ink-faint);font-style:italic;white-space:nowrap;margin-top:2px}
+.me .lplate{--ph:40px;--lfs:24px}
+.bottom .vr{flex:none;width:2px;height:54px;background:var(--rule);transform:skewX(-14deg)}
+.bottom .lbl{flex:none;font-size:15px;font-weight:700;font-style:italic;letter-spacing:.26em;color:var(--volt);text-transform:uppercase}
+.bottom .field{height:56px}
+.bottom .form{flex:1}
+</style>
+</head>
+<body>
+<div id="stage">
+  <div class="scene cardbg" id="scene" data-celebrate>
+    <div class="grid-lines"></div>
+    <div class="sheen"></div>
+    <div class="stripes tl"><i></i><i></i></div>
+    <div class="stripes br"><i></i><i></i></div>
+    <img class="logo" id="logo" src="/logo.svg" alt="Lavaro" hidden>
+    <img class="team-logo" id="teamLogo" alt="" hidden>
+
+    <div class="hero">
+      <div class="floor"></div>
+      <img class="car" id="car" alt="" hidden>
+      <div class="face" id="face" hidden><img id="faceImg" alt=""><div class="glint"></div></div>
+      <div class="carname" id="carName"></div>
+    </div>
+
+    <div class="left">
+      <div class="eyebrow"><span class="tick"></span><span id="state">Starting soon</span></div>
+      <div class="series" id="series"></div>
+      <div class="meta" id="meta"></div>
+      <div class="clock" id="clock"></div>
+      <div class="sub" id="sub"></div>
+      <div class="track" id="track" hidden><img id="trackFlag" alt=""><span id="trackName"></span><span class="km" id="trackKm"></span></div>
+    </div>
+
+    <div class="tiles" id="tiles"></div>
+
+    <div class="bottom">
+      <div class="me">
+        <div class="av"><img id="avatar" alt=""></div>
+        <div>
+          <div class="nm"><span id="first"></span> <span class="last" id="last"></span></div>
+          <div class="rt" id="rt"></div>
+        </div>
+        <span class="lplate" id="licencePlate"><span id="licence"></span></span>
+      </div>
+      <div class="vr"></div>
+      <div class="lbl" id="bottomLbl"></div>
+      <div class="field" id="fieldBox"><div class="ftrack" id="field"></div></div>
+      <div class="form" id="form" hidden></div>
+    </div>
+  </div>
+</div>
+
+<script src="/lfm-card/lfm.js"></script>
+<script>
+const {$, S} = LFM;
+LFM.fitStage(1600, 900);
+let fieldKey = "";
+
+function tile(k, v, extra){
+  const t = document.createElement("div"); t.className = "tile";
+  const kk = document.createElement("div"); kk.className = "k"; kk.textContent = k;
+  const vv = document.createElement("div"); vv.className = "v";
+  if (extra) vv.insertAdjacentHTML("afterbegin", extra);
+  vv.append(v);
+  t.append(kk, vv);
+  return t;
+}
+
+function scrollField(){
+  const track = $("field"), dist = Math.max(0, track.scrollWidth - track.parentElement.clientWidth);
+  track.getAnimations().forEach(a => a.cancel());
+  if (!dist || !LFM.MOTION) return;
+  const ms = dist / 60 * 1000;
+  track.animate([{transform:"translateX(0)"}, {transform:`translateX(${-dist}px)`}],
+    {duration: ms, easing: "ease-in-out", iterations: Infinity, direction: "alternate", delay: 1500});
+}
+
+function render(){
+  const v = S.view, r = LFM.currentRace(), res = S.result;
+  const race = S.mode === "next" || S.mode === "live";
+  $("logo").hidden = !v.lavaro;
+  $("teamLogo").hidden = v.lavaro || !v.teamLogo;
+  if (!v.lavaro && v.teamLogo) $("teamLogo").src = v.teamLogo;
+
+  // Hero: livery when we have one, else the profile picture.
+  const liv = S.livery;
+  $("car").hidden = !liv; $("face").hidden = !!liv;
+  if (liv && $("car").getAttribute("src") !== liv.url){
+    $("car").onerror = () => { $("car").hidden = true; $("face").hidden = false; };
+    $("car").src = liv.url;
+  }
+  if (v.avatar){ $("faceImg").src = v.avatar; $("avatar").src = v.avatar; }
+  $("carName").textContent = (liv && liv.car) || (r && r.car) || "";
+
+  $("first").textContent = v.first; $("last").textContent = v.last;
+  $("rt").textContent = [v.rating != null && `${v.rating} rating`, v.simCode.toUpperCase()].filter(Boolean).join(" · ");
+  LFM.paintLicence($("licencePlate"), $("licence"), v.licence);
+
+  // Left column
+  $("track").hidden = true;
+  const tiles = [];
+  if (race){
+    const n = S.next;
+    $("series").textContent = n.series;
+    $("meta").textContent = [n.raceId, n.split, ((r && r.drivers) || n.drivers) && `${(r && r.drivers) || n.drivers} drivers`].filter(Boolean).join("  /  ");
+    if (r && r.track){
+      $("track").hidden = false;
+      $("trackName").textContent = r.track.name;
+      $("trackKm").textContent = r.track.km ? `${(r.track.km / 1000).toFixed(1)} km` : "";
+      $("trackFlag").hidden = !r.track.country;
+      if (r.track.country) $("trackFlag").src = LFM.flagUrl(r.track.country);
+    }
+    if (r){
+      if (r.car && !liv) tiles.push(tile("Car", r.car));
+      if (r.door) tiles.push(tile("Door", `#${r.door}`));
+      if (r.seed){
+        const t = tile("Seed", `P${r.seed}`);
+        t.lastChild.append(Object.assign(document.createElement("small"), {textContent: `of ${r.classSize}`}));
+        tiles.push(t);
+      }
+      if (r.sof) tiles.push(tile("SOF", String(r.sof)));
+      if (r.weather) tiles.push(tile(r.weather.temp != null ? `Weather · ${r.weather.temp}°C` : "Weather", r.weather.label, LFM.WX_ICONS[r.weather.icon]));
+      if (r.raceMinutes) tiles.push(tile("Race", `${r.raceMinutes} min`));
+    }
+  } else if (res){
+    $("series").textContent = res.series;
+    $("meta").textContent = [res.track, LFM.ago(res.date)].filter(Boolean).join("  /  ");
+    tiles.push(tile("Start", res.start ? `P${res.start}` : "—"));
+    tiles.push(tile("Finish", res.dnf ? "DNF" : `P${res.finish}`));
+    if (res.elo != null) tiles.push(tile("Rating", LFM.signed(res.elo)));
+    if (res.sr != null) tiles.push(tile("Safety", LFM.signed(res.sr, 2)));
+    if (res.incidents != null) tiles.push(tile("Incidents", String(res.incidents)));
+    if (res.bestLap) tiles.push(tile("Best lap", res.bestLap));
+  } else {
+    $("series").textContent = v.team || "Low Fuel Motorsport";
+    $("meta").textContent = v.simName;
+  }
+  LFM.fitText($("series"), 760, 52, 30);
+  $("tiles").replaceChildren(...tiles.filter(Boolean));
+  // Shrink tile values together until the row fits.
+  let fs = 30;
+  const vals = [...$("tiles").querySelectorAll(".v")];
+  vals.forEach(x => x.style.fontSize = "");
+  while (LFM.overflows($("tiles")) && fs > 18){ fs -= 2; vals.forEach(x => x.style.fontSize = fs + "px"); }
+  // Result tiles: colour the rating / SR change.
+  [...$("tiles").children].forEach(t => {
+    const k = t.firstChild.textContent, val = t.lastChild;
+    if (!race && (k === "Rating" || k === "Safety")){
+      const n = k === "Rating" ? res.elo : res.sr;
+      val.classList.add("delta", LFM.deltaClass(n));
+    }
+  });
+
+  // Bottom: SOF field before a race, recent form otherwise.
+  const field = r ? r.field : [];
+  $("fieldBox").hidden = !(race && field.length > 1);
+  $("form").hidden = race || S.form.length < 2;
+  $("bottomLbl").textContent = race ? (field.length > 1 ? `Field${r.sof ? " · SOF " + r.sof : ""}` : "") : S.form.length > 1 ? "Form" : "";
+  if (!$("fieldBox").hidden){
+    const key = field.map(f => f.door).join();
+    if (key !== fieldKey){ fieldKey = key; LFM.renderRivals($("field"), field); requestAnimationFrame(scrollField); }
+  }
+  if (!$("form").hidden) LFM.renderForm($("form"), S.form);
+  tick();
+}
+
+// Big clock / state line, every second.
+function tick(){
+  const race = S.mode === "next" || S.mode === "live", res = S.result, scene = $("scene");
+  scene.classList.remove("live", "soon");
+  if (race){
+    const diff = S.next.start - Date.now();
+    const at = S.next.start.toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"});
+    if (diff > 0){
+      $("state").textContent = "Starting soon";
+      $("clock").textContent = LFM.countdown(diff);
+      $("sub").innerHTML = ""; $("sub").append("Lights out ", Object.assign(document.createElement("b"), {textContent: at}));
+      scene.classList.toggle("soon", diff < 60e3);
+    } else {
+      $("state").textContent = "Racing now";
+      $("clock").textContent = "LIVE";
+      $("sub").textContent = `Started ${at}`;
+      scene.classList.add("live");
+    }
+  } else if (res){
+    $("state").textContent = "Result";
+    $("clock").textContent = res.dnf ? "DNF" : `P${res.finish}`;
+    const g = res.dnf || !res.start ? 0 : res.start - res.finish;
+    if (g){
+      const d = document.createElement("span"); d.className = "delta " + LFM.deltaClass(g);
+      d.textContent = `${g > 0 ? "▲" : "▼"}${Math.abs(g)}`; $("clock").append(d);
+    }
+    $("sub").textContent = [res.carClass, res.sof && `SOF ${res.sof}`, res.car].filter(Boolean).join(" · ");
+  } else {
+    $("state").textContent = "Stay tuned";
+    $("clock").textContent = "TBA";
+    $("sub").textContent = "No race scheduled yet";
+  }
+}
+
+LFM.start(render);
+setInterval(() => { if (S.view) tick(); }, 1000);
+</script>
+</body>
+</html>
