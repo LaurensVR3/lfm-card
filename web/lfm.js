@@ -39,6 +39,11 @@ const FLIP_S = PARAMS.has("flip") ? Math.max(0, Number(PARAMS.get("flip")) || 0)
 const MOTION = PARAMS.get("motion") !== "off";
 const SHOW = (PARAMS.get("show") || "").toLowerCase();   // "result" previews result mode
 const CELEBRATE = (PARAMS.get("celebrate") || "").toLowerCase();
+const BROADCAST = PARAMS.get("broadcast") !== "off";
+const BROADCAST_MS = 10 * 60e3;  // YouTube schedule refresh (nginx caches it for as long)
+// Official LFM Twitch channels, as listed on lowfuelmotorsport.com.
+const LFM_TWITCH = {lowfuelmotorsport_en:"EN", lowfuelmotorsport_de:"DE", lowfuelmotorsport_es:"ES"};
+const LFM_YOUTUBE = "youtube.com/@LowFuelMotorsport";
 if (!MOTION) document.documentElement.classList.add("still");
 
 // The JSON APIs send Access-Control-Allow-Origin: *, so they are fetched directly.
@@ -46,12 +51,18 @@ if (!MOTION) document.documentElement.classList.add("still");
 // so it goes through a same-origin nginx proxy.
 const API = "https://api3.lowfuelmotorsport.com/api";
 const URLS = {
+  // Next race as JSON (what the official card itself polls). CORS-open.
+  widget: `https://api.lowfuelmotorsport.de/api/licenseWidgetUserData/${ID}`,
   user:  `${API}/users/getUserData/${ID}`,
   stats: `${API}/users/getUserStats/${ID}`,
   past:  n => `${API}/users/getUsersPastRaces/${ID}?start=0&limit=${n}`,
   race:  id => `${API}/race/${id}`,
   cars:  `${API}/lists/getCars`,
-  card:  `/lfm-api/lfmlicense/${ID}`,
+  card:  `/lfm-api/lfmlicense/${ID}`,    // fallback when the widget JSON fails
+  // Which LFM-listed Twitch channels are live right now (Twitch "streams" rows). CORS-open.
+  live:  `${API}/checkBroadcaster`,
+  // LFM's YouTube /streams page, through a cached same-origin nginx proxy.
+  youtube: `/lfm-api/youtube-streams`,
   // Screenshot of an uploaded LFM livery (transparent PNG). The id is base64'd, as on lowfuelmotorsport.com.
   livery: id => `${API}/liveries/screenshot/${btoa(String(id))}?width=1200`,
 };
@@ -190,6 +201,7 @@ const S = {
   livery: null,    // {url, car}
   mode: "idle",    // "next" | "live" | "result" | "idle"
   promo: null,     // {licence, at} when the licence went up recently
+  broadcast: null, // official LFM stream of the next race, see loadBroadcast()
 };
 let carNames = null;
 const raceCache = new Map();  // finished race id -> {livery, bestLap, classPos}
@@ -200,19 +212,37 @@ async function loadCarNames(){
 }
 
 /* ------------------------------------------------------------------ parsing */
+// "2026-11-10T20:00:00+0100" (offset kept), or a bare LFM date in Berlin time.
+const parseStart = s => /[+-]\d\d:?\d\d$|Z$/.test(String(s).trim())
+  ? new Date(String(s).trim().replace(" ", "T").replace(/([+-]\d\d)(\d\d)$/, "$1:$2")) : lfmDate(s);
+
+function nextRace(id, series, split, drivers, start){
+  if (!id || !start || isNaN(start)) return null;
+  return {series: series || "", raceId: `Race #${id}`, split: split ? `Split ${split}` : "",
+          drivers: drivers ? String(drivers) : "", start, id: Number(id)};
+}
+
+// licenseWidgetUserData: {race: [{event_name, race_id, split, race_date, ...}], drivers}
+function parseWidget(json){
+  const r = json && Array.isArray(json.race) && json.race[0];
+  return r ? nextRace(r.race_id, r.event_name, r.split, json.drivers, parseStart(r.race_date)) : null;
+}
+
+// The official card HTML. Current markup has ids (#raceEvent, #raceId ...); the
+// older one was a "series | race | split" bar.
 function parseCard(html){
   const doc = new DOMParser().parseFromString(html, "text/html");
-  const bar = doc.querySelector(".nextrace");
-  const time = doc.querySelector("#next-race-time");
-  if (!bar || !time || !time.textContent.trim()) return null;
-  const driversEl = bar.querySelector(".drivers");
+  const txt = sel => ((doc.querySelector(sel) || {}).textContent || "").trim();
+  const time = txt("#next-race-time");
+  const box = doc.querySelector(".nextrace");
+  if (!time || !box || box.hasAttribute("hidden")) return null;
+  if (doc.querySelector("#raceId"))
+    return nextRace(txt("#raceId"), txt("#raceEvent"), txt("#raceSplit"), txt("#drivers"), parseStart(time));
+  const driversEl = box.querySelector(".drivers");
   const drivers = driversEl ? driversEl.textContent.trim() : "";
   if (driversEl) driversEl.remove();
-  const parts = bar.textContent.split("|").map(s => s.trim()).filter(Boolean);
-  const start = new Date(time.textContent.trim().replace(/([+-]\d\d)(\d\d)$/, "$1:$2"));
-  if (isNaN(start)) return null;
-  return {series: parts[0] || "", raceId: parts[1] || "", split: parts[2] || "", drivers, start,
-          id: Number((parts[1] || "").replace(/\D/g, "")) || null};
+  const parts = box.textContent.split("|").map(s => s.trim()).filter(Boolean);
+  return nextRace((parts[1] || "").replace(/\D/g, ""), parts[0], (parts[2] || "").replace(/\D/g, ""), drivers, parseStart(time));
 }
 
 // Pull this driver's entry out of the race. Door numbers are handed out by Elo
@@ -222,18 +252,34 @@ function parseRace(race, cars){
   const entries = (race.participants && race.participants.entries) || [];
   const me = entries.find(e => String(e.user_id) === ID);
   const sim = Number((race.track && race.track.sim_id) || (race.event && race.event.sim_id)) || null;
+  const t = race.track, ev = race.event || {};
   const info = {
     raceId: Number(race.race_id),
     sim,
-    track: race.track ? {name: race.track.track_name, country: race.track.country, km: race.track.km} : null,
+    series: ev.event_name || "",
+    week: Number(race.season_week) || null,
+    track: t ? {name: t.track_name, country: t.country, km: t.km, turns: t.turns || null,
+                city: t.city || "", image: t.thumbnail || ""} : null,
     sof: race.sof || null,
     drivers: entries.length,
     field: [],
+    grid: [],        // the whole split (class first), see below
+    streamers: 0,    // drivers in the split who are live on Twitch / YouTube
+    // LFM's own broadcast fields. Empty for normal races.
+    liveVideo: race.live_video || race.videolink || "",
   };
   if (me){
     const rivals = entries.filter(e => e.split === me.split && e.car_class === me.car_class)
                           .sort((a, b) => b.elo - a.elo);
-    info.drivers = entries.filter(e => e.split === me.split).length;
+    const split = entries.filter(e => e.split === me.split);
+    info.drivers = split.length;
+    info.classes = new Set(split.map(e => e.car_class)).size;
+    // Own class by Elo, then the other classes.
+    info.grid = rivals.concat(split.filter(e => e.car_class !== me.car_class).sort((a, b) => b.elo - a.elo))
+      .map(e => ({door: e.raceNumber, first: e.vorname, last: e.nachname, origin: e.origin, elo: e.elo,
+                  carClass: e.car_class, licence: e.license || "", me: e === me,
+                  live: !!e.is_live, team: e.team_name || "", car: cars ? cars.get(`${sim}:${e.car_model}`) : null}));
+    info.streamers = split.filter(e => e.is_live).length;
     info.car = cars ? cars.get(`${sim}:${me.car_model}`) : null;
     info.door = me.raceNumber;
     info.livery = me.livery || null;
@@ -257,6 +303,14 @@ function parseRace(race, cars){
   info.raceMinutes = (info.sessions.find(x => x.type === "R") || {}).minutes || (m ? Number(m[1]) : null);
   return info;
 }
+
+// Session start times from the race start (= server start, first session) and
+// the session lengths. Later sessions are approximate: the sim adds overtime.
+function sessionTimes(start, sessions){
+  let t = start.getTime();
+  return (sessions || []).map(s => { const at = new Date(t); t += s.minutes * 60e3; return {...s, at, end: new Date(t)}; });
+}
+const SESSION_NAMES = {P: "Practice", Q: "Qualifying", R: "Race"};
 
 // Each sim's server config has its own shape. Returns
 //   weather:  {icon, label, temp?, rain? (0..1), mode} or null
@@ -410,6 +464,104 @@ function ratingTrail(sim, current){
   return out;
 }
 
+// This driver's finished races at a track (same sim), from the loaded history.
+function trackRecord(trackName, sim){
+  const rows = S.history.filter(r => r.track_name === trackName && r.sim_id === sim && isFinal(r));
+  if (!rows.length) return null;
+  const fin = rows.map(r => r.finishing_pos).filter(p => p > 0);
+  return {
+    starts: rows.length, complete: S.fullHistory,
+    wins: fin.filter(p => p === 1).length, podiums: fin.filter(p => p <= 3).length,
+    best: fin.length ? Math.min(...fin) : 0,
+    last: {finish: rows[0].finishing_pos || 0, date: lfmDate(rows[0].race_date), elo: rows[0].rating_change ?? null},
+  };
+}
+
+/* ------------------------------------------------------------------ broadcast
+   Is LFM streaming the next race? YouTube: LFM schedules its broadcasts ahead of
+   time ("[ENG] Caseking.de Prime Series R05 Suzuka", "Scheduled for 11/10/26"),
+   so they show up before the race. Twitch only says who is live right now
+   (LFM's checkBroadcaster), so the official Twitch channels appear once they're on air. */
+const norm = s => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, " ").trim();
+const GENERIC = new Set(("series season cup lfm the and del des der die das von for race grand prix circuit circuito autodromo " +
+  "international raceway park ring motorsport motorsports speedway track week sprint endurance").split(" "));
+const keyWords = s => norm(s).split(" ").filter(w => w.length > 2 && !GENERIC.has(w) && !/^\d+$/.test(w));
+const dayKey = d => `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+
+// The streams tab's ytInitialData: one item per stream with its badge
+// ("Upcoming" / "LIVE") and, when scheduled, "Scheduled for M/D/YY, h:mm AM".
+function parseYouTube(html){
+  const m = /var ytInitialData = (\{.*?\});<\/script>/s.exec(html);
+  if (!m) return [];
+  const items = [];
+  const walk = o => {
+    if (!o || typeof o !== "object") return;
+    if (o.lockupViewModel){ items.push([o.lockupViewModel.contentId, o.lockupViewModel]); return; }
+    if (o.videoRenderer){ items.push([o.videoRenderer.videoId, o.videoRenderer]); return; }
+    for (const v of Object.values(o)) walk(v);
+  };
+  walk(JSON.parse(m[1]));
+  return items.map(([id, it]) => {
+    const texts = [];
+    const grab = x => {
+      if (!x || typeof x !== "object") return;
+      for (const k of ["content", "text", "simpleText"]) if (typeof x[k] === "string") texts.push(x[k]);
+      for (const v of Object.values(x)) grab(v);
+    };
+    grab(it);
+    const title = texts.find(t => /^\[\w+\]/.test(t)) || texts.find(t => t.length > 12 && !/^(Scheduled|Streamed|Upcoming|LIVE|Now playing)/i.test(t)) || "";
+    const when = texts.map(t => /Scheduled for (\d{1,2})\/(\d{1,2})\/(\d{2,4})/.exec(t)).find(Boolean);
+    const live = texts.some(t => /^live( now)?$/i.test(t.trim()));
+    const upcoming = !live && (!!when || texts.some(t => /^upcoming$/i.test(t.trim())));
+    const y = when ? Number(when[3]) : 0;
+    return {id, title, url: `https://youtu.be/${id}`, lang: (/^\[(\w+)\]/.exec(title) || [])[1] || "",
+            state: live ? "live" : upcoming ? "upcoming" : "past",
+            date: when ? new Date(y < 100 ? 2000 + y : y, when[1] - 1, when[2]) : null};
+  }).filter(v => v.id && v.title && v.state !== "past");
+}
+
+// Same series, same track, and the same day (or round number, for live streams).
+function streamMatches(title, race, start, dated){
+  const words = new Set(norm(title).split(" "));
+  const series = keyWords(race.series);
+  if (!series.length || !series.every(w => words.has(w))) return false;
+  const place = keyWords(race.track && race.track.name).concat(keyWords(race.track && race.track.city));
+  if (place.length && !place.some(w => words.has(w))) return false;
+  const round = /\bR(\d{1,2})\b/i.exec(title);
+  if (dated) return Math.abs(new Date(dayKey(dated)) - new Date(dayKey(start))) <= 864e5;
+  return round && race.week ? Number(round[1]) === race.week : true;
+}
+
+let ytCache = {at: 0, items: []};
+async function loadBroadcast(race, start){
+  if (Date.now() - ytCache.at > BROADCAST_MS){
+    try { ytCache = {at: Date.now(), items: parseYouTube(await getText(URLS.youtube))}; }
+    catch (e){ ytCache.at = Date.now(); console.warn("LFM YouTube schedule fetch failed", e); }
+  }
+  const youtube = ytCache.items.filter(v => streamMatches(v.title, race, start, v.state === "upcoming" && v.date))
+    .map(v => ({...v, lang: v.lang === "DEU" ? "DE" : v.lang === "ENG" ? "EN" : v.lang}));
+
+  // Twitch, around race time only: official channel live with a matching title,
+  // or simply live while LFM has this race on YouTube (they simulcast).
+  let twitch = [];
+  const near = Date.now() > start.getTime() - 3600e3 && Date.now() < start.getTime() + RACE_WINDOW_MS;
+  if (near){
+    try {
+      const rows = (await getJSON(URLS.live)).data || [];
+      const series = keyWords(race.series);
+      twitch = rows.filter(r => LFM_TWITCH[String(r.user_login).toLowerCase()])
+        .filter(r => youtube.length || series.some(w => norm(r.title).split(" ").includes(w)))
+        .map(r => ({channel: r.user_login.toLowerCase(), lang: LFM_TWITCH[r.user_login.toLowerCase()],
+                    title: r.title, viewers: r.viewer_count || 0, url: `https://twitch.tv/${r.user_login.toLowerCase()}`}));
+    } catch (e){ console.warn("LFM Twitch live check failed", e); }
+  }
+  if (race.liveVideo && !youtube.length && !twitch.length)
+    youtube.push({id: "", title: race.series, url: race.liveVideo, lang: "", state: "upcoming", date: null});
+  if (!youtube.length && !twitch.length) return null;
+  return {youtube, twitch, live: twitch.length > 0 || youtube.some(v => v.state === "live"),
+          langs: [...new Set(youtube.concat(twitch).map(x => x.lang).filter(Boolean))]};
+}
+
 /* ------------------------------------------------------------------ derive */
 const nextActive = () => {
   const n = S.next;
@@ -462,21 +614,27 @@ function checkPromotion(){
 
 /* ------------------------------------------------------------------ load */
 let render = () => {};
+let OPTS = {};
 let loadedOnce = false;
 
 async function load(){
   const first = !loadedOnce;
-  const [user, card, past, stats] = await Promise.allSettled([
-    getJSON(URLS.user), getText(URLS.card), getJSON(URLS.past(first ? 40 : 10)), getJSON(URLS.stats)]);
+  const [user, widget, past, stats] = await Promise.allSettled([
+    getJSON(URLS.user), getJSON(URLS.widget), getJSON(URLS.past(first ? 40 : 10)), getJSON(URLS.stats)]);
   // On failure keep showing the last good data rather than blanking the overlay.
   if (user.status === "fulfilled") S.user = user.value; else console.warn("LFM profile fetch failed", user.reason);
   if (stats.status === "fulfilled") S.stats = stats.value;
   if (past.status === "fulfilled" && Array.isArray(past.value)) mergeHistory(past.value);
-  if (card.status === "fulfilled"){
-    const n = parseCard(card.value);
-    // LFM may drop a race from the card once it starts; keep it while it runs.
-    if (n || !(S.next && S.next.start <= Date.now())) S.next = n;
-  } else console.warn("LFM card fetch failed", card.reason);
+  // Next race: widget JSON, else the official card HTML through the proxy.
+  let next, gotNext = widget.status === "fulfilled";
+  if (gotNext) next = parseWidget(widget.value);
+  else {
+    console.warn("LFM widget fetch failed", widget.reason);
+    try { next = parseCard(await getText(URLS.card)); gotNext = true; }
+    catch (e){ console.warn("LFM card fetch failed", e); }
+  }
+  // LFM may drop a race from the card once it starts; keep it while it runs.
+  if (gotNext && (next || !(S.next && S.next.start <= Date.now()))) S.next = next;
 
   if (nextActive()){
     const [race, cars] = await Promise.allSettled([getJSON(URLS.race(S.next.id)), loadCarNames()]);
@@ -485,6 +643,14 @@ async function load(){
   } else S.race = null;
   // A pinned sim only shows races in that sim.
   if (SIM_PIN && S.race && S.race.sim && S.race.sim !== SIM_PIN) S.next = S.race = null;
+  if (S.race){
+    S.race.sessionTimes = sessionTimes(S.next.start, S.race.sessions);
+    if (S.race.track) S.race.record = trackRecord(S.race.track.name, S.race.sim);
+  }
+  if (OPTS.broadcast && BROADCAST && S.race && SHOW !== "result"){
+    try { S.broadcast = await loadBroadcast(S.race, S.next.start); }
+    catch (e){ console.warn("LFM broadcast check failed", e); }
+  } else S.broadcast = null;
 
   const done = finals();
   const last = done[0] && makeResult(done[0]);
@@ -522,7 +688,12 @@ async function load(){
 async function loadFullHistory(){
   try {
     const rows = await getJSON(URLS.past(3000));
-    if (Array.isArray(rows)){ mergeHistory(rows); S.fullHistory = true; queueCelebrations(); }
+    if (Array.isArray(rows)){
+      mergeHistory(rows); S.fullHistory = true;
+      if (S.race && S.race.track) S.race.record = trackRecord(S.race.track.name, S.race.sim);
+      if (S.view) render(S);
+      queueCelebrations();
+    }
   } catch (e){ console.warn("LFM history fetch failed", e); }
 }
 
@@ -725,11 +896,12 @@ function rotator({pages, title, bar, pageMs = 8000, scrollPxS = 90, hold = 1500}
 
 /* ------------------------------------------------------------------ public */
 window.LFM = {
-  S, PARAMS, ID, SIMS, MOTION, URLS, WX_ICONS,
+  S, PARAMS, ID, SIMS, MOTION, URLS, WX_ICONS, SESSION_NAMES, LFM_YOUTUBE,
   $, flagUrl, pad, countdown, ago, signed, deltaClass, fitStage, fitText, tighten, overflows,
   paintLicence, paintSR, coin, rotator, renderRivals, renderForm, currentRace, nextActive,
-  start(fn){
-    render = fn;
+  // opts.broadcast: also look up LFM's official stream of the next race.
+  start(fn, opts = {}){
+    render = fn; OPTS = opts;
     document.fonts.ready.then(load);
     setInterval(load, REFRESH_MS);
   },

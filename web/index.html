@@ -248,7 +248,7 @@ details p{padding:0 0 18px;color:var(--ink-soft)}
         <tbody>
           <tr><td>Card</td><td><code>1600 × 900</code> (or 1920 × 1080)</td><td>Intermission, intro or "just chatting" scenes. The full profile with a rotating details row.</td></tr>
           <tr><td>Lower third</td><td><code>1600 × 200</code></td><td>Stays on screen while racing. A slim bar with avatar, rating, plates and a rotating info panel.</td></tr>
-          <tr><td>Starting soon</td><td><code>1920 × 1080</code></td><td>Full-screen pre-race scene: big countdown, track, your livery, grid info and the field. After the race it turns into a result screen.</td></tr>
+          <tr><td>Starting soon</td><td><code>1920 × 1080</code></td><td>Full-screen pre-race scene: countdown, session times, track and your record there, your livery, car / door / seed / SOF / weather, the full entry list, career stats, form and the official LFM broadcast. After the race it turns into a result screen.</td></tr>
         </tbody>
       </table>
     </div>
@@ -264,6 +264,10 @@ details p{padding:0 0 18px;color:var(--ink-soft)}
       <article class="card">
         <h3>Next race</h3>
         <p>When you're signed up for a race: series, split, driver count and a live countdown. The details row rotates through <strong>track</strong>, <strong>car</strong>, <strong>door number</strong>, your <strong>seed</strong> in class, <strong>SOF</strong>, <strong>weather and session lengths</strong>, and a scrolling list of the drivers around you in the field.</p>
+      </article>
+      <article class="card">
+        <h3>Official broadcast</h3>
+        <p>On the starting soon scene: when LFM streams your race, a badge shows where to watch. YouTube broadcasts are scheduled ahead, so they show up <strong>before the race</strong>; the official LFM Twitch channels (EN, DE, ES) show <strong>once they're live</strong>. Drivers in your split who are streaming get a red dot in the entry list.</p>
       </article>
       <article class="card">
         <h3>Racing now</h3>
@@ -322,6 +326,7 @@ details p{padding:0 0 18px;color:var(--ink-soft)}
           <tr><td><code>celebrate</code></td><td><code>off</code>, or <code>win</code> <code>podium</code> <code>pb</code> <code>promo</code> <code>starts</code></td><td><code>off</code> turns celebrations off. The names play an example once, for testing.</td></tr>
           <tr><td><code>motion</code></td><td><code>off</code></td><td>Stops the ambient animation (light sweeps, glints, drifting banner) and the livery flip. Useful on low-end PCs.</td></tr>
           <tr><td><code>show</code></td><td><code>result</code></td><td>Preview result mode even when a race is coming up.</td></tr>
+          <tr><td><code>broadcast</code></td><td><code>off</code></td><td>Starting soon only: don't look up or show the official LFM broadcast.</td></tr>
         </tbody>
       </table>
     </div>

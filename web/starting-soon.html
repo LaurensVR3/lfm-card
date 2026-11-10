@@ -7,7 +7,10 @@
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/lfm-card/lfm.css">
 <style>
-/* Full-screen 1600x900 pre-race scene: countdown left, livery right, driver + field at the bottom. */
+/* Full-screen 1600x900 pre-race scene.
+   Race: countdown + sessions + track + tiles left, livery + entry list right,
+   official broadcast top right, driver / career / form along the bottom.
+   Result and idle: big clock left, big hero right. */
 .scene{position:absolute;inset:0;overflow:hidden}
 .sheen{position:absolute;inset:0;overflow:hidden;pointer-events:none}
 .sheen::after{content:"";position:absolute;top:-10%;bottom:-10%;left:0;width:38%;
@@ -22,8 +25,8 @@
 .stripes i::after{content:"";position:absolute;inset:0;width:25%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.6),transparent);animation:sweep 9s ease-in-out infinite}
 .stripes.tl{left:0;top:0} .stripes.tl i:nth-child(1){left:-250px;top:20px} .stripes.tl i:nth-child(2){left:-210px;top:90px}
 .stripes.br{right:0;bottom:0} .stripes.br i:nth-child(1){left:70px;top:186px} .stripes.br i:nth-child(2){left:40px;top:120px;animation-delay:-2.5s}
-.logo{position:absolute;right:72px;top:60px;width:220px}
-.team-logo{position:absolute;right:72px;top:50px;width:96px;height:96px;border-radius:14px;object-fit:cover}
+.logo{position:absolute;right:72px;top:52px;width:200px}
+.team-logo{position:absolute;right:72px;top:40px;width:84px;height:84px;border-radius:14px;object-fit:cover}
 
 /* Hero: livery (or avatar) floating on a glowing floor */
 .hero{position:absolute;right:40px;top:150px;width:860px;height:440px;display:grid;place-items:center}
@@ -46,21 +49,80 @@
 .clock .delta{font-size:.36em;margin-left:.2em;letter-spacing:0}
 .sub{margin-top:18px;font-size:22px;letter-spacing:.24em;text-transform:uppercase;color:var(--ink-soft);font-style:italic;white-space:nowrap}
 .sub b{color:var(--mist);font-weight:600}
-.track{margin-top:34px;display:flex;align-items:center;gap:18px;font-size:36px;font-weight:700;font-style:italic;text-transform:uppercase;white-space:nowrap}
-.track img{width:54px;height:36px;object-fit:cover;transform:skewX(-14deg);border-radius:2px 6px 2px 6px}
-.track span.km{font-size:22px;font-weight:500;color:var(--ink-faint);letter-spacing:.12em}
 
-/* Info tiles */
+/* Sessions: one bar per timed session, width by length, with start times */
+.sessions{display:none;margin-top:26px;gap:8px;width:720px}
+.ses{position:relative;flex:none;width:200px;height:62px;padding:9px 16px 0;background:rgba(30,30,34,.85);
+  clip-path:polygon(10px 0,100% 0,calc(100% - 10px) 100%,0 100%);overflow:hidden}
+.ses .fill{position:absolute;left:0;top:0;bottom:0;width:0;background:rgba(var(--volt-rgb),.16)}
+.ses .bar{position:absolute;left:0;right:0;bottom:0;height:4px;background:rgba(235,235,235,.14)}
+.ses .bar b{display:block;height:100%;width:0;background:var(--volt)}
+.ses .n{position:relative;font-size:14px;font-weight:600;letter-spacing:.26em;text-transform:uppercase;color:var(--ink-faint);white-space:nowrap}
+.ses .t{position:relative;margin-top:4px;font-size:24px;font-weight:700;font-style:italic;white-space:nowrap;font-variant-numeric:tabular-nums}
+.ses.long{flex:1;width:auto}
+.ses .t small{font-size:15px;font-weight:500;color:var(--ink-faint);margin-left:8px;letter-spacing:.06em}
+.ses.now .n{color:var(--volt)}
+.ses.done{opacity:.45}
+
+/* Track: LFM's track photo behind name, length, turns and this driver's record there */
+.trackcard{display:none;position:relative;margin-top:18px;width:720px;height:118px;overflow:hidden;
+  clip-path:polygon(14px 0,100% 0,calc(100% - 14px) 100%,0 100%);background:#1a1a1d}
+.trackcard .ph{position:absolute;inset:0;background-size:cover;background-position:center;opacity:.55;animation:drift 30s ease-in-out infinite alternate}
+.trackcard::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(16,16,18,.96) 0%,rgba(16,16,18,.82) 55%,rgba(16,16,18,.35) 100%)}
+.trackcard .in{position:relative;z-index:1;height:100%;padding:16px 28px;display:flex;flex-direction:column;justify-content:center;gap:8px}
+.trackcard .nm{display:flex;align-items:center;gap:14px;font-size:32px;font-weight:700;font-style:italic;text-transform:uppercase;white-space:nowrap}
+.trackcard .nm img{width:46px;height:30px;object-fit:cover;transform:skewX(-14deg);border-radius:2px 6px 2px 6px}
+.trackcard .dt{font-size:16px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-soft);font-style:italic;white-space:nowrap}
+.trackcard .rec{font-size:16px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);white-space:nowrap}
+.trackcard .rec b{color:var(--mist);font-weight:600;font-style:italic}
+
+/* Info tiles. Result/idle: one row across. Race: 3x2 grid in the left column. */
 .tiles{position:absolute;left:96px;right:96px;top:640px;height:104px;display:flex;gap:14px}
 .tile{position:relative;flex:1 0 auto;padding:18px 26px;background:rgba(30,30,34,.85);
-  clip-path:polygon(14px 0,100% 0,calc(100% - 14px) 100%,0 100%);display:flex;flex-direction:column;justify-content:center;gap:8px}
+  clip-path:polygon(14px 0,100% 0,calc(100% - 14px) 100%,0 100%);display:flex;flex-direction:column;justify-content:center;gap:8px;min-width:0}
 .tile::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--volt)}
 .tile .k{font-size:14px;font-weight:500;letter-spacing:.26em;text-transform:uppercase;color:var(--ink-faint);white-space:nowrap}
-.tile .v{display:flex;align-items:center;gap:10px;font-size:30px;font-weight:700;font-style:italic;text-transform:uppercase;white-space:nowrap}
+.tile .v{display:flex;align-items:center;gap:10px;font-size:30px;font-weight:700;font-style:italic;text-transform:uppercase;white-space:nowrap;overflow:hidden}
 .tile .v svg.wx{width:34px;height:34px}
 .tile .v small{font-size:18px;font-weight:500;color:var(--ink-faint)}
 
-/* Bottom bar: driver + field ticker / form */
+/* Entry list: the split, own class first by Elo */
+.grid{display:none;position:absolute;left:900px;right:72px;top:452px;height:300px;flex-direction:column}
+.grid .hd{display:flex;align-items:baseline;gap:14px;padding-bottom:10px;border-bottom:1px solid var(--rule);white-space:nowrap}
+.grid .hd b{font-size:15px;font-weight:700;font-style:italic;letter-spacing:.26em;color:var(--volt);text-transform:uppercase}
+.grid .hd span{font-size:14px;letter-spacing:.2em;color:var(--ink-faint);text-transform:uppercase;font-style:italic}
+.grid .hd .strm{margin-left:auto;color:var(--down)}
+.grid .rows{flex:1;display:grid;grid-auto-flow:column;grid-template-columns:1fr 1fr;column-gap:22px;align-content:start;padding-top:8px}
+.er{display:flex;align-items:center;gap:9px;height:36px;min-width:0;font-size:17px;white-space:nowrap;border-bottom:1px solid rgba(235,235,235,.05)}
+.er .pos{flex:none;width:20px;text-align:right;font-size:14px;font-weight:600;color:var(--ink-faint);font-style:italic}
+.er .rdoor{flex:none;font-size:14px;font-weight:700;color:#111;background:var(--mist);padding:0 7px;line-height:22px;min-width:42px;text-align:center;transform:skewX(-14deg);border-radius:2px 5px 2px 5px}
+.er .rdoor>em{display:inline-block;transform:skewX(14deg);font-style:italic}
+.er img{flex:none;width:24px;height:16px;object-fit:cover}
+.er .rname{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;font-weight:600}
+.er .cls{flex:none;font-size:12px;font-weight:700;letter-spacing:.1em;color:var(--ink-faint);border:1px solid var(--rule);padding:0 5px;line-height:18px}
+.er .relo{flex:none;color:var(--ink-faint);font-style:italic;font-size:15px;font-variant-numeric:tabular-nums}
+.er .lv{flex:none;width:9px;height:9px;border-radius:50%;background:var(--down);box-shadow:0 0 8px var(--down);animation:pulse 1.4s ease-in-out infinite}
+.multi .er .pos{display:none}
+.multi .er .relo{font-size:14px}
+.er.me .rdoor{background:var(--volt);color:var(--on-volt)}
+.er.me .rname{color:var(--volt)}
+.er.me{background:linear-gradient(90deg,rgba(var(--volt-rgb),.1),transparent)}
+
+/* Official LFM broadcast */
+.bc{position:absolute;right:300px;top:46px;height:84px;display:flex;align-items:center;gap:16px;padding:0 28px 0 22px;
+  background:rgba(30,30,34,.92);clip-path:polygon(16px 0,100% 0,calc(100% - 16px) 100%,0 100%);max-width:500px}
+.bc::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--volt)}
+.bc .ic{flex:none;display:flex;gap:8px}
+.bc .ic svg{width:34px;height:34px;display:block}
+.bc .tx{min-width:0;display:flex;flex-direction:column;gap:5px}
+.bc .k{display:flex;align-items:center;gap:10px;font-size:15px;font-weight:700;font-style:italic;letter-spacing:.26em;text-transform:uppercase;color:var(--volt);white-space:nowrap}
+.bc .k .dot{width:11px;height:11px;border-radius:50%;background:var(--down);box-shadow:0 0 10px var(--down);animation:pulse 1.2s ease-in-out infinite}
+.bc .v{font-size:19px;font-weight:700;font-style:italic;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bc .v small{font-size:14px;font-weight:500;color:var(--ink-faint);letter-spacing:.08em;margin-left:10px}
+.bc.on .k{color:var(--mist)}
+.bc.on::before{background:var(--down)}
+
+/* Bottom bar: driver + career stats + recent form (race), driver + field / form (otherwise) */
 .bottom{position:absolute;left:96px;right:96px;top:774px;height:84px;display:flex;align-items:center;gap:28px;
   border-top:1px solid var(--rule);padding-top:12px}
 .me{flex:none;display:flex;align-items:center;gap:18px}
@@ -69,11 +131,38 @@
 .me .nm{font-size:28px;font-weight:700;font-style:italic;text-transform:uppercase;white-space:nowrap}
 .me .nm .last{color:var(--volt)}
 .me .rt{font-size:15px;letter-spacing:.24em;text-transform:uppercase;color:var(--ink-faint);font-style:italic;white-space:nowrap;margin-top:2px}
+.me .plates{display:flex;align-items:center}
 .me .lplate{--ph:40px;--lfs:24px}
+.me .splate{--ph:40px;--sfs:22px}
 .bottom .vr{flex:none;width:2px;height:54px;background:var(--rule);transform:skewX(-14deg)}
 .bottom .lbl{flex:none;font-size:15px;font-weight:700;font-style:italic;letter-spacing:.26em;color:var(--volt);text-transform:uppercase}
 .bottom .field{height:56px}
-.bottom .form{flex:1}
+.bottom .form{flex:1;min-width:0;overflow:hidden}
+.career{flex:none;display:flex;gap:26px}
+.career div{display:flex;flex-direction:column;gap:3px;white-space:nowrap}
+.career b{font-size:26px;font-weight:700;font-style:italic;line-height:1}
+.career span{font-size:12px;letter-spacing:.24em;text-transform:uppercase;color:var(--ink-faint)}
+
+/* Race layout */
+.race .left{top:52px}
+.race .series{font-size:46px;margin-top:20px}
+.race .meta{margin-top:12px;font-size:18px}
+.race .clock{margin-top:22px;font-size:132px}
+.race .sub{margin-top:12px;font-size:18px}
+.race .sessions{display:flex}
+.race .trackcard{display:block}
+.race .tiles{left:96px;right:auto;width:720px;top:auto;bottom:140px;height:auto;display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.race .tile{padding:10px 22px;gap:4px;height:62px}
+.race .tile .k{font-size:12px}
+.race .tile .v{font-size:24px}
+.race .tile .v svg.wx{width:26px;height:26px}
+.race .tile .v small{font-size:15px}
+.race .hero{left:900px;right:52px;width:auto;top:140px;height:300px}
+.race .hero .face{width:250px;height:250px}
+.race .hero .floor{bottom:16px;height:60px}
+.race .hero .carname{display:none}
+.race .grid{display:flex}
+.race .bottom .form .latest{display:none}
 </style>
 </head>
 <body>
@@ -85,6 +174,14 @@
     <div class="stripes br"><i></i><i></i></div>
     <img class="logo" id="logo" src="/logo.svg" alt="Lavaro" hidden>
     <img class="team-logo" id="teamLogo" alt="" hidden>
+
+    <div class="bc" id="bc" hidden>
+      <div class="ic" id="bcIcons"></div>
+      <div class="tx">
+        <div class="k" id="bcKey"></div>
+        <div class="v" id="bcVal"></div>
+      </div>
+    </div>
 
     <div class="hero">
       <div class="floor"></div>
@@ -99,10 +196,23 @@
       <div class="meta" id="meta"></div>
       <div class="clock" id="clock"></div>
       <div class="sub" id="sub"></div>
-      <div class="track" id="track" hidden><img id="trackFlag" alt=""><span id="trackName"></span><span class="km" id="trackKm"></span></div>
+      <div class="sessions" id="sessions"></div>
+      <div class="trackcard" id="trackCard">
+        <div class="ph" id="trackPh"></div>
+        <div class="in">
+          <div class="nm"><img id="trackFlag" alt=""><span id="trackName"></span></div>
+          <div class="dt" id="trackDt"></div>
+          <div class="rec" id="trackRec"></div>
+        </div>
+      </div>
     </div>
 
     <div class="tiles" id="tiles"></div>
+
+    <div class="grid" id="grid">
+      <div class="hd"><b>Entry list</b><span id="gridMeta"></span><span class="strm" id="gridLive"></span></div>
+      <div class="rows" id="gridRows"></div>
+    </div>
 
     <div class="bottom">
       <div class="me">
@@ -111,9 +221,14 @@
           <div class="nm"><span id="first"></span> <span class="last" id="last"></span></div>
           <div class="rt" id="rt"></div>
         </div>
-        <span class="lplate" id="licencePlate"><span id="licence"></span></span>
+        <div class="plates">
+          <span class="lplate" id="licencePlate"><span id="licence"></span></span>
+          <span class="splate" id="srPlate" hidden><span id="sr"></span></span>
+        </div>
       </div>
       <div class="vr"></div>
+      <div class="career" id="career" hidden></div>
+      <div class="vr" id="careerVr" hidden></div>
       <div class="lbl" id="bottomLbl"></div>
       <div class="field" id="fieldBox"><div class="ftrack" id="field"></div></div>
       <div class="form" id="form" hidden></div>
@@ -126,14 +241,27 @@
 const {$, S} = LFM;
 LFM.fitStage(1600, 900);
 let fieldKey = "";
+const GRID_ROWS = 7;  // entry list rows per column
+const regionNames = new Intl.DisplayNames(["en"], {type:"region"});
+const hm = d => d.toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"});
+const el = (tag, cls, text) => {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text != null) e.textContent = text;
+  return e;
+};
+const small = text => el("small", "", text);
+
+const ICONS = {
+  youtube: '<svg viewBox="0 0 40 40"><rect x="2" y="8" width="36" height="24" rx="7" fill="#ff0033"/><path d="M17 14.5v11l9-5.5z" fill="#fff"/></svg>',
+  twitch: '<svg viewBox="0 0 40 40"><path d="M9 4 5 11v23h8v4h4l4-4h6l8-8V4z" fill="#9146ff"/><path d="M11 8h20v16l-5 5h-7l-4 4v-4h-4z" fill="#141416"/><path d="M19 13h3v8h-3zm7 0h3v8h-3z" fill="#9146ff"/></svg>',
+};
 
 function tile(k, v, extra){
-  const t = document.createElement("div"); t.className = "tile";
-  const kk = document.createElement("div"); kk.className = "k"; kk.textContent = k;
-  const vv = document.createElement("div"); vv.className = "v";
+  const t = el("div", "tile"), vv = el("div", "v");
   if (extra) vv.insertAdjacentHTML("afterbegin", extra);
   vv.append(v);
-  t.append(kk, vv);
+  t.append(el("div", "k", k), vv);
   return t;
 }
 
@@ -146,9 +274,138 @@ function scrollField(){
     {duration: ms, easing: "ease-in-out", iterations: Infinity, direction: "alternate", delay: 1500});
 }
 
+/* ---------------------------------------------------------------- sessions
+   Practice 20:00 / Qualifying ≈20:10 / Race ≈20:25, the running one filling up. */
+function renderSessions(r){
+  const list = (r && r.sessionTimes) || [];
+  $("sessions").hidden = !list.length;
+  $("sessions").replaceChildren(...list.map((s, i) => {
+    const d = el("div", "ses");
+    if (s.type === "R" || list.length === 1) d.classList.add("long");
+    const t = el("div", "t", (i ? "≈" : "") + hm(s.at));
+    t.append(small(`${s.minutes} min`));
+    const bar = el("div", "bar"); bar.append(el("b"));
+    d.append(el("div", "fill"), el("div", "n", LFM.SESSION_NAMES[s.type] || s.type), t, bar);
+    return d;
+  }));
+}
+function sessionNow(r){
+  const list = (r && r.sessionTimes) || [], now = Date.now();
+  const i = list.findIndex(s => now >= s.at && now < s.end);
+  return i < 0 ? null : {i, s: list[i], p: (now - list[i].at) / (list[i].end - list[i].at)};
+}
+function paintSessions(r){
+  const cur = sessionNow(r), now = Date.now();
+  [...$("sessions").children].forEach((d, i) => {
+    const s = r.sessionTimes[i];
+    if (!s) return;
+    const on = !!cur && cur.i === i, done = now >= s.end;
+    d.classList.toggle("now", on); d.classList.toggle("done", done && !on);
+    const w = on ? `${(cur.p * 100).toFixed(1)}%` : done ? "100%" : "0";
+    d.querySelector(".fill").style.width = w;
+    d.querySelector(".bar b").style.width = w;
+  });
+}
+
+/* ---------------------------------------------------------------- track */
+function renderTrack(r){
+  const t = r && r.track;
+  $("trackCard").hidden = !t;
+  if (!t) return;
+  $("trackName").textContent = t.name;
+  $("trackFlag").hidden = !t.country;
+  if (t.country) $("trackFlag").src = LFM.flagUrl(t.country);
+  if (t.image && $("trackPh").dataset.src !== t.image){
+    $("trackPh").dataset.src = t.image;
+    $("trackPh").style.backgroundImage = `url("${t.image}")`;
+  }
+  let country = "";
+  try { country = t.country ? regionNames.of(t.country.toUpperCase()) : ""; } catch {}
+  const place = [t.city && !t.name.includes(t.city) && t.city, country].filter(Boolean).join(", ");
+  $("trackDt").textContent = [t.km && `${(t.km / 1000).toFixed(2)} km`, t.turns && `${t.turns} turns`, place]
+    .filter(Boolean).join("  ·  ");
+
+  // This driver's record at the track.
+  const rec = r.record, box = $("trackRec");
+  box.replaceChildren();
+  if (!rec){ box.textContent = "First LFM race here"; return; }
+  const part = (...bits) => {
+    if (box.childNodes.length) box.append("  ·  ");
+    bits.forEach(b => box.append(b));
+  };
+  part(el("b", "", `${rec.starts}${rec.complete ? "" : "+"}`), ` start${rec.starts === 1 ? "" : "s"} here`);
+  if (rec.wins) part(el("b", "", rec.wins), ` win${rec.wins === 1 ? "" : "s"}`);
+  else if (rec.podiums) part(el("b", "", rec.podiums), ` podium${rec.podiums === 1 ? "" : "s"}`);
+  if (rec.best) part("Best ", el("b", "", `P${rec.best}`));
+  const last = rec.last;
+  part("Last ", el("b", "", last.finish ? `P${last.finish}` : "DNF"));
+  if (last.elo) box.append(" ", el("span", "delta " + LFM.deltaClass(last.elo), LFM.signed(last.elo)));
+  if (last.date) box.append(`, ${LFM.ago(last.date)}`);
+}
+
+/* ---------------------------------------------------------------- entry list */
+function renderGrid(r){
+  const list = (r && r.grid) || [];
+  $("grid").hidden = list.length < 2;
+  if (list.length < 2) return;
+  // Everyone if they fit, else a window around this driver.
+  const max = GRID_ROWS * 2, idx = list.findIndex(d => d.me);
+  const from = list.length <= max ? 0 : Math.max(0, Math.min(idx - Math.floor(max / 2), list.length - max));
+  const multi = r.classes > 1;
+  $("grid").classList.toggle("multi", multi);
+  const shown = list.slice(from, from + max);
+  $("gridRows").style.gridTemplateRows = `repeat(${Math.ceil(shown.length / 2)}, 36px)`;
+  $("gridRows").replaceChildren(...shown.map((d, k) => {
+    const row = el("div", d.me ? "er me" : "er");
+    const door = el("span", "rdoor"); door.append(el("em", "", `#${d.door}`));
+    row.append(el("span", "pos", String(from + k + 1)), door);
+    if (d.origin){ const img = el("img"); img.alt = ""; img.src = LFM.flagUrl(d.origin); row.append(img); }
+    // "M. Verstappen": the last name is what viewers look for.
+    row.append(el("span", "rname", d.last ? `${d.first ? d.first[0] + ". " : ""}${d.last}` : d.first));
+    if (d.live) row.append(el("span", "lv"));
+    if (multi) row.append(el("span", "cls", d.carClass));
+    row.append(el("span", "relo", d.elo));
+    return row;
+  }));
+  $("gridMeta").textContent = [S.next.split, `${list.length} drivers`, from && `P${from + 1}–${Math.min(from + max, list.length)}`]
+    .filter(Boolean).join("  ·  ");
+  $("gridLive").textContent = r.streamers ? `● ${r.streamers} streaming` : "";
+}
+
+/* ---------------------------------------------------------------- broadcast */
+function renderBroadcast(){
+  const b = S.broadcast;
+  $("bc").hidden = !b;
+  if (!b) return;
+  $("bc").classList.toggle("on", b.live);
+  $("bcIcons").innerHTML = (b.youtube.length ? ICONS.youtube : "") + (b.twitch.length ? ICONS.twitch : "");
+  $("bcKey").replaceChildren();
+  if (b.live) $("bcKey").append(el("span", "dot"));
+  $("bcKey").append(b.live ? "Live now on LFM" : "Official LFM broadcast");
+  // Where to watch: the live Twitch channel (English first), else the YouTube channel.
+  // Other languages show in the small label next to it.
+  const tw = b.twitch.find(t => t.lang === "EN") || b.twitch[0];
+  const where = tw ? `twitch.tv/${tw.channel}` : LFM.LFM_YOUTUBE;
+  $("bcVal").replaceChildren(where);
+  if (b.langs.length) $("bcVal").append(small(b.langs.join(" / ")));
+}
+
+function renderCareer(show){
+  const st = S.stats;
+  show = show && st && st.starts;
+  $("career").hidden = $("careerVr").hidden = !show;
+  if (!show) return;
+  $("career").replaceChildren(...[["Starts", st.starts], ["Wins", st.wins], ["Podiums", st.podium], ["Poles", st.poles]]
+    .filter(([, v]) => v != null)
+    .map(([k, v]) => { const d = el("div"); d.append(el("b", "", v), el("span", "", k)); return d; }));
+}
+
+/* ---------------------------------------------------------------- render */
 function render(){
   const v = S.view, r = LFM.currentRace(), res = S.result;
   const race = S.mode === "next" || S.mode === "live";
+  const full = race && !!r;   // the full race layout needs the race details
+  $("scene").classList.toggle("race", full);
   $("logo").hidden = !v.lavaro;
   $("teamLogo").hidden = v.lavaro || !v.teamLogo;
   if (!v.lavaro && v.teamLogo) $("teamLogo").src = v.teamLogo;
@@ -166,32 +423,29 @@ function render(){
   $("first").textContent = v.first; $("last").textContent = v.last;
   $("rt").textContent = [v.rating != null && `${v.rating} rating`, v.simCode.toUpperCase()].filter(Boolean).join(" · ");
   LFM.paintLicence($("licencePlate"), $("licence"), v.licence);
+  $("srPlate").hidden = !(full && v.sr);
+  if (v.sr) LFM.paintSR($("srPlate"), $("sr"), v.sr);
 
-  // Left column
-  $("track").hidden = true;
   const tiles = [];
   if (race){
     const n = S.next;
     $("series").textContent = n.series;
-    $("meta").textContent = [n.raceId, n.split, ((r && r.drivers) || n.drivers) && `${(r && r.drivers) || n.drivers} drivers`].filter(Boolean).join("  /  ");
-    if (r && r.track){
-      $("track").hidden = false;
-      $("trackName").textContent = r.track.name;
-      $("trackKm").textContent = r.track.km ? `${(r.track.km / 1000).toFixed(1)} km` : "";
-      $("trackFlag").hidden = !r.track.country;
-      if (r.track.country) $("trackFlag").src = LFM.flagUrl(r.track.country);
-    }
+    const drivers = (r && r.drivers) || n.drivers;
+    $("meta").textContent = [n.raceId, n.split, drivers && `${drivers} drivers`, r && r.week && `Week ${r.week}`]
+      .filter(Boolean).join("  /  ");
     if (r){
-      if (r.car && !liv) tiles.push(tile("Car", r.car));
-      if (r.door) tiles.push(tile("Door", `#${r.door}`));
-      if (r.seed){
-        const t = tile("Seed", `P${r.seed}`);
-        t.lastChild.append(Object.assign(document.createElement("small"), {textContent: `of ${r.classSize}`}));
-        tiles.push(t);
-      }
+      if (r.car) tiles.push(tile("Car", r.car));
+      if (r.door) tiles.push(tile(r.carClass ? `Door · ${r.carClass}` : "Door", `#${r.door}`));
+      if (r.seed){ const t = tile("Seed", `P${r.seed}`); t.lastChild.append(small(`of ${r.classSize}`)); tiles.push(t); }
       if (r.sof) tiles.push(tile("SOF", String(r.sof)));
-      if (r.weather) tiles.push(tile(r.weather.temp != null ? `Weather · ${r.weather.temp}°C` : "Weather", r.weather.label, LFM.WX_ICONS[r.weather.icon]));
-      if (r.raceMinutes) tiles.push(tile("Race", `${r.raceMinutes} min`));
+      if (r.weather){
+        tiles.push(tile(r.weather.temp != null ? `Weather · ${r.weather.temp}°C` : "Weather", r.weather.label, LFM.WX_ICONS[r.weather.icon]));
+      }
+      if (r.weather && r.weather.mode){
+        const t = tile("Conditions", r.weather.mode);
+        if (r.weather.rain >= 0.05) t.lastChild.append(small(`rain ${Math.round(r.weather.rain * 100)}%`));
+        tiles.push(t);
+      } else if (r.raceMinutes) tiles.push(tile("Race", `${r.raceMinutes} min`));
     }
   } else if (res){
     $("series").textContent = res.series;
@@ -205,62 +459,84 @@ function render(){
   } else {
     $("series").textContent = v.team || "Low Fuel Motorsport";
     $("meta").textContent = v.simName;
+    // No race: career numbers instead.
+    const st = S.stats || {};
+    if (v.rating != null) tiles.push(tile("Rating", String(v.rating)));
+    for (const [k, n] of [["Starts", st.starts], ["Wins", st.wins], ["Podiums", st.podium], ["Poles", st.poles]])
+      if (n != null) tiles.push(tile(k, String(n)));
+    if (st.podiumrate != null) tiles.push(tile("Podium rate", `${st.podiumrate}%`));
   }
-  LFM.fitText($("series"), 760, 52, 30);
-  $("tiles").replaceChildren(...tiles.filter(Boolean));
-  // Shrink tile values together until the row fits.
-  let fs = 30;
+  // The broadcast badge sits top right in the race layout, so the series gets less room.
+  LFM.fitText($("series"), full ? 700 : 760, full ? 46 : 52, 28);
+  $("tiles").replaceChildren(...tiles);
+  // Shrink tile values until they fit: together for the single row, each on its own in the grid.
   const vals = [...$("tiles").querySelectorAll(".v")];
   vals.forEach(x => x.style.fontSize = "");
-  while (LFM.overflows($("tiles")) && fs > 18){ fs -= 2; vals.forEach(x => x.style.fontSize = fs + "px"); }
+  const base = vals.length ? parseFloat(getComputedStyle(vals[0]).fontSize) : 30;
+  if (full) for (const x of vals){ let fs = base; while (LFM.overflows(x) && fs > 15){ fs -= 1; x.style.fontSize = fs + "px"; } }
+  else { let fs = base; while (LFM.overflows($("tiles")) && fs > 18){ fs -= 2; vals.forEach(x => x.style.fontSize = fs + "px"); } }
   // Result tiles: colour the rating / SR change.
-  [...$("tiles").children].forEach(t => {
-    const k = t.firstChild.textContent, val = t.lastChild;
-    if (!race && (k === "Rating" || k === "Safety")){
-      const n = k === "Rating" ? res.elo : res.sr;
-      val.classList.add("delta", LFM.deltaClass(n));
-    }
+  if (!race && res) [...$("tiles").children].forEach(t => {
+    const k = t.firstChild.textContent;
+    if (k === "Rating" || k === "Safety") t.lastChild.classList.add("delta", LFM.deltaClass(k === "Rating" ? res.elo : res.sr));
   });
 
-  // Bottom: SOF field before a race, recent form otherwise.
+  renderSessions(full && r);
+  renderTrack(full && r);
+  renderGrid(full && r);
+  renderBroadcast();
+  renderCareer(full);
+
+  // Bottom: career + recent form in the race layout; the simple race layout
+  // (no race details) keeps the field ticker, result/idle the full form.
   const field = r ? r.field : [];
-  $("fieldBox").hidden = !(race && field.length > 1);
-  $("form").hidden = race || S.form.length < 2;
-  $("bottomLbl").textContent = race ? (field.length > 1 ? `Field${r.sof ? " · SOF " + r.sof : ""}` : "") : S.form.length > 1 ? "Form" : "";
-  if (!$("fieldBox").hidden){
+  const ticker = race && !full && field.length > 1;
+  const form = full ? S.form.slice(-5) : S.form;
+  $("fieldBox").hidden = !ticker;
+  $("form").hidden = ticker || form.length < 2;
+  $("bottomLbl").textContent = ticker ? "Field" : form.length > 1 ? "Form" : "";
+  if (!$("form").hidden) LFM.renderForm($("form"), form);
+  if (ticker){
     const key = field.map(f => f.door).join();
     if (key !== fieldKey){ fieldKey = key; LFM.renderRivals($("field"), field); requestAnimationFrame(scrollField); }
   }
-  if (!$("form").hidden) LFM.renderForm($("form"), S.form);
   tick();
 }
 
 // Big clock / state line, every second.
 function tick(){
-  const race = S.mode === "next" || S.mode === "live", res = S.result, scene = $("scene");
+  const race = S.mode === "next" || S.mode === "live", res = S.result, scene = $("scene"), r = LFM.currentRace();
   scene.classList.remove("live", "soon");
   if (race){
-    const diff = S.next.start - Date.now();
-    const at = S.next.start.toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"});
+    const diff = S.next.start - Date.now(), at = hm(S.next.start);
+    const sessions = (r && r.sessionTimes) || [];
+    const first = sessions[0], raceSes = sessions.find(s => s.type === "R");
     if (diff > 0){
       $("state").textContent = "Starting soon";
       $("clock").textContent = LFM.countdown(diff);
-      $("sub").innerHTML = ""; $("sub").append("Lights out ", Object.assign(document.createElement("b"), {textContent: at}));
+      $("sub").replaceChildren(first ? `${LFM.SESSION_NAMES[first.type]} ` : "Start ", el("b", "", at));
+      if (raceSes && raceSes !== first) $("sub").append("  ·  Race ", el("b", "", `≈${hm(raceSes.at)}`));
       scene.classList.toggle("soon", diff < 60e3);
     } else {
-      $("state").textContent = "Racing now";
-      $("clock").textContent = "LIVE";
-      $("sub").textContent = `Started ${at}`;
+      const cur = sessionNow(r);
       scene.classList.add("live");
+      if (cur && cur.s.type !== "R" && raceSes){
+        // Practice / qualifying: count down to the race session.
+        $("state").textContent = `${LFM.SESSION_NAMES[cur.s.type]} now`;
+        $("clock").textContent = LFM.countdown(raceSes.at - Date.now());
+        $("sub").replaceChildren("Race ", el("b", "", `≈${hm(raceSes.at)}`));
+      } else {
+        $("state").textContent = "Racing now";
+        $("clock").textContent = "LIVE";
+        $("sub").textContent = `Started ${at}`;
+      }
     }
+    if (r && r.sessionTimes) paintSessions(r);
   } else if (res){
     $("state").textContent = "Result";
     $("clock").textContent = res.dnf ? "DNF" : `P${res.finish}`;
     const g = res.dnf || !res.start ? 0 : res.start - res.finish;
-    if (g){
-      const d = document.createElement("span"); d.className = "delta " + LFM.deltaClass(g);
-      d.textContent = `${g > 0 ? "▲" : "▼"}${Math.abs(g)}`; $("clock").append(d);
-    }
+    if (g) $("clock").append(el("span", "delta " + LFM.deltaClass(g), `${g > 0 ? "▲" : "▼"}${Math.abs(g)}`));
     $("sub").textContent = [res.carClass, res.sof && `SOF ${res.sof}`, res.car].filter(Boolean).join(" · ");
   } else {
     $("state").textContent = "Stay tuned";
@@ -269,7 +545,7 @@ function tick(){
   }
 }
 
-LFM.start(render);
+LFM.start(render, {broadcast: true});
 setInterval(() => { if (S.view) tick(); }, 1000);
 </script>
 </body>
