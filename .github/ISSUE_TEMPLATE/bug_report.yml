@@ -1,0 +1,79 @@
+name: Bug report
+description: Something on the overlay or the manual looks wrong or doesn't work.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! Before you start: right-click the browser source in OBS, choose **Properties** and click **Refresh cache of current page**. That fixes most issues right after an update.
+  - type: input
+    id: url
+    attributes:
+      label: Overlay URL
+      description: The full URL from your OBS browser source. It contains your public LFM driver ID; that's fine to share.
+      placeholder: https://lavaro.net/lfm-card/99685?layout=race-day&aspect=21:9
+    validations:
+      required: true
+  - type: dropdown
+    id: layout
+    attributes:
+      label: Layout
+      options:
+        - Card
+        - Lower third
+        - Starting soon
+        - Race day
+        - Mini
+        - Manual / URL builder page
+    validations:
+      required: true
+  - type: dropdown
+    id: sim
+    attributes:
+      label: Sim
+      options:
+        - ACC
+        - Assetto Corsa
+        - AC EVO
+        - Le Mans Ultimate
+        - AMS2
+        - RaceRoom
+        - Not sim-specific / don't know
+    validations:
+      required: true
+  - type: input
+    id: size
+    attributes:
+      label: OBS browser source size
+      description: Width × height from the source's properties, and your stream/canvas resolution if different.
+      placeholder: "Source 2560 × 1080, canvas 2560 × 1080"
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What you saw, and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: when
+    attributes:
+      label: When did it happen?
+      description: E.g. during the countdown, while racing, after the result came in, after a celebration. Include the date, time and your time zone, and the LFM race ID if it was about a race.
+      placeholder: "2026-11-11 around 20:15 CET, race #123456, right after the race started"
+  - type: textarea
+    id: screenshot
+    attributes:
+      label: Screenshot or clip
+      description: Drag an image or video in here. This helps the most.
+  - type: input
+    id: obs
+    attributes:
+      label: OBS version and OS
+      placeholder: OBS 31.0, Windows 11
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else?
+      description: Other URL options you changed, other browsers you tried, whether it worked before.

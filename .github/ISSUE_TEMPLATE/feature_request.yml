@@ -1,0 +1,34 @@
+name: Feature request
+description: An idea to make the overlay better for you or your viewers.
+labels: [enhancement]
+body:
+  - type: dropdown
+    id: layout
+    attributes:
+      label: Which layout is it about?
+      multiple: true
+      options:
+        - Card
+        - Lower third
+        - Starting soon
+        - Race day
+        - Mini
+        - Manual / URL builder page
+        - Something new
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like?
+      description: Describe the idea and when on stream you'd use it.
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why would it help?
+      description: What does it make easier for you or your viewers?
+  - type: textarea
+    id: example
+    attributes:
+      label: Example or mock-up
+      description: A sketch, screenshot or link to something similar, if you have one.
