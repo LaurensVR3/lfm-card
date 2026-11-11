@@ -11,7 +11,7 @@ Unofficial and fan-made; all race data comes from LFM's public API.
 | Layout | URL | OBS source size (16:9 / 21:9 / 32:9 at 1080p) |
 |---|---|---|
 | Card | `/lfm-card/<id>` | 1920 × 1080 / 2560 × 1080 / 3840 × 1080 |
-| Lower third | `/lfm-card/<id>?layout=lower-third` | 1600 × 200 / 2100 × 200 / 3200 × 200 |
+| Lower third | `/lfm-card/<id>?layout=lower-third` | 1600 × 200 / 2133 × 200 / 3200 × 200 |
 | Starting soon | `/lfm-card/<id>?layout=starting-soon` | 1920 × 1080 / 2560 × 1080 / 3840 × 1080 |
 | Race day | `/lfm-card/<id>?layout=race-day` | 1920 × 1080 / 2560 × 1080 / 3840 × 1080 |
 | Mini | `/lfm-card/<id>?layout=mini` | 800 × 160 at any aspect (533 × 107 for 720p) |

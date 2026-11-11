@@ -56,9 +56,12 @@ const HEXCODE = (() => {
   if (/^[0-9a-f]{3}$/i.test(v)) return "#" + v.replace(/./g, c => c + c);
   return null;
 })();
-// ?aspect=21:9 / 32:9 forces the canvas shape; otherwise it follows the OBS source size.
+// ?aspect=21:9 / 32:9 / 2560x1080 forces the canvas shape; otherwise it follows
+// the OBS source size. "21:9" is a marketing name: real ultrawide screens are
+// wider (2560x1080 = 2.37, 3440x1440 = 2.39), so it means 2560x1080 here.
 const ASPECT = (() => {
   const v = (param("aspect") || "").trim(), m = v.match(/^(\d+(?:\.\d+)?)\s*[:x\/]\s*(\d+(?:\.\d+)?)$/i);
+  if (m && m[1] == 21 && m[2] == 9) return 2560 / 1080;
   const r = m ? m[1] / m[2] : Number(v);
   return r > 0 ? r : null;
 })();
@@ -325,7 +328,10 @@ const STAGE = {w: 0, h: 0, wide: false, ultra: false};
 function fitStage(w, h, opts = {}){
   const stage = $("stage"), root = document.documentElement.classList;
   const fit = () => {
-    const want = ASPECT ? w * ASPECT / (16 / 9) : h * innerWidth / innerHeight;
+    // A forced aspect close to the source shape (within 8%) follows the source,
+    // so e.g. aspect=21:9 fills both 2560x1080 and 3440x1440 exactly.
+    const src = h * innerWidth / innerHeight, forced = ASPECT && w * ASPECT / (16 / 9);
+    const want = forced && Math.abs(src / forced - 1) > 0.08 ? forced : src;
     const cw = opts.fixed ? w : Math.round(Math.min(2 * w, Math.max(w, want || w)));
     const changed = cw !== STAGE.w;
     Object.assign(STAGE, {w: cw, h, wide: cw >= 1.15 * w, ultra: cw >= 1.65 * w});

@@ -121,6 +121,7 @@ tr:last-child td{border-bottom:0}
 td:first-child{color:var(--ink);white-space:nowrap}
 .note{margin-top:20px;max-width:76ch;padding:14px 18px;border-left:3px solid var(--volt);background:rgba(232,255,41,.05);border-radius:0 6px 6px 0;color:var(--ink-soft);font-size:15px}
 .note strong{color:var(--ink)}
+.note a{color:var(--volt);text-decoration:underline;text-underline-offset:3px}
 details{border-bottom:1px solid var(--rule);max-width:76ch}
 details:first-of-type{border-top:1px solid var(--rule);margin-top:20px}
 summary{cursor:pointer;padding:16px 0;font-weight:600;list-style:none;display:flex;justify-content:space-between;gap:16px}
@@ -343,8 +344,8 @@ details p{padding:0 0 18px;color:var(--ink-soft)}
           <tr><td>16:9 · 720p</td><td><code>1280 × 720</code></td><td><code>1067 × 133</code></td><td><code>533 × 107</code></td></tr>
           <tr><td>16:9 · 1080p</td><td><code>1920 × 1080</code></td><td><code>1600 × 200</code></td><td><code>800 × 160</code></td></tr>
           <tr><td>16:9 · 1440p</td><td><code>2560 × 1440</code></td><td><code>2133 × 267</code></td><td><code>1067 × 213</code></td></tr>
-          <tr><td>21:9 · 1080p</td><td><code>2560 × 1080</code></td><td><code>2100 × 200</code></td><td><code>800 × 160</code></td></tr>
-          <tr><td>21:9 · 1440p</td><td><code>3440 × 1440</code></td><td><code>2800 × 267</code></td><td><code>1067 × 213</code></td></tr>
+          <tr><td>21:9 · 1080p</td><td><code>2560 × 1080</code></td><td><code>2133 × 200</code></td><td><code>800 × 160</code></td></tr>
+          <tr><td>21:9 · 1440p</td><td><code>3440 × 1440</code></td><td><code>2867 × 267</code></td><td><code>1067 × 213</code></td></tr>
           <tr><td>32:9 · 1080p</td><td><code>3840 × 1080</code></td><td><code>3200 × 200</code></td><td><code>800 × 160</code></td></tr>
           <tr><td>32:9 · 1440p</td><td><code>5120 × 1440</code></td><td><code>4267 × 267</code></td><td><code>1067 × 213</code></td></tr>
         </tbody>
@@ -430,7 +431,7 @@ details p{padding:0 0 18px;color:var(--ink-soft)}
         <thead><tr><th>Option</th><th>Values</th><th>What it does</th></tr></thead>
         <tbody>
           <tr><td><code>layout</code></td><td><code>lower-third</code>, <code>starting-soon</code>, <code>race-day</code>, <code>mini</code></td><td>Picks the layout. Leave it out for the full card.</td></tr>
-          <tr><td><code>aspect</code></td><td><code>21:9</code>, <code>32:9</code></td><td>Forces the overlay's shape. Usually not needed: without it the overlay follows the browser source size, from 16:9 up to 32:9.</td></tr>
+          <tr><td><code>aspect</code></td><td><code>21:9</code>, <code>32:9</code>, or a size like <code>3440x1440</code></td><td>Forces the overlay's shape. Usually not needed: without it the overlay follows the browser source size, from 16:9 up to 32:9. <code>21:9</code> means 2560 × 1080; a source within 8% of the forced shape (like 3440 × 1440) is still filled exactly.</td></tr>
           <tr><td><code>HEXCODE</code></td><td>colour, e.g. <code>FF0033</code></td><td>Accent colour instead of your licence colour. Six (or three) hex digits, without the <code>#</code>. Used exactly as given, so very dark colours are hard to read.</td></tr>
           <tr><td><code>demo</code></td><td><code>1</code></td><td>A made-up race starting a minute after the page loads, with your real profile. Reload to start again. Don't leave it on in your real scene.</td></tr>
           <tr><td><code>lang</code></td><td><code>de</code> <code>es</code> <code>fr</code> <code>it</code> <code>nl</code> <code>pt</code></td><td>Language of the labels. Default English. Times use your PC's clock format.</td></tr>
@@ -464,13 +465,14 @@ details p{padding:0 0 18px;color:var(--ink-soft)}
     <details><summary>Does it work for drivers outside Lavaro?</summary><p>Yes. Any LFM driver can use it. You get your own team logo and licence colours.</p></details>
     <details><summary>The race day frame covers part of my sim's HUD</summary><p>Pick <strong>Top only</strong> or <strong>Bottom only</strong> under <strong>Race frame</strong> in the builder (<code>frame=top</code> / <code>frame=bottom</code>), and untick <strong>Frame corners</strong> if the corner marks are in the way.</p></details>
     <details><summary>Is this an official LFM product?</summary><p>No. It's an unofficial fan-made overlay by Lavaro that reads public data from Low Fuel Motorsport. All race data belongs to LFM.</p></details>
+    <p class="note"><strong>Found a problem or have an idea?</strong> Please <a href="https://github.com/LaurensVR3/lfm-card/issues/new">open an issue on GitHub</a>. Include your overlay URL, the OBS source size and a screenshot if you can. You can also check the <a href="https://github.com/LaurensVR3/lfm-card/issues">existing issues</a> first.</p>
   </section>
 </main>
 
 <footer class="site-footer">
   <div class="container footer-row">
     <a class="footer-brand" href="/"><img src="/mark.svg" alt="" width="21" height="18">lavaro.net</a>
-    <span><a href="https://github.com/LaurensVR3/lfm-card">Source on GitHub</a> · Data: Low Fuel Motorsport (unofficial)</span>
+    <span><a href="https://github.com/LaurensVR3/lfm-card">Source on GitHub</a> · <a href="https://github.com/LaurensVR3/lfm-card/issues/new">Report a problem</a> · Data: Low Fuel Motorsport (unofficial)</span>
   </div>
 </footer>
 
@@ -478,8 +480,13 @@ details p{padding:0 0 18px;color:var(--ink-soft)}
 (() => {
   const $ = id => document.getElementById(id);
   // Canvas height per layout at 1080p; width follows the stream's aspect ratio.
-  const RATIOS = {"": 16 / 9, "21:9": 21 / 9, "32:9": 32 / 9};
-  const STREAM_W = {"": 1920, "21:9": 2560, "32:9": 3840};
+  // Real monitor resolutions: "21:9" screens are 2560x1080 and 3440x1440,
+  // which are not exactly 21/9 (or the same shape as each other).
+  const STREAM_W = {
+    "":     {720: 1280, 1080: 1920, 1440: 2560},
+    "21:9": {720: 1720, 1080: 2560, 1440: 3440},
+    "32:9": {720: 2560, 1080: 3840, 1440: 5120},
+  };
   let layout = "", aspect = "", res = 1080;
   function sourceSize(){
     if (layout === "mini"){
@@ -487,12 +494,10 @@ details p{padding:0 0 18px;color:var(--ink-soft)}
       const k = res / 1080;
       return [Math.round(800 * k), Math.round(160 * k)];
     }
-    if (layout === "lower-third"){
-      const w = 1600 * RATIOS[aspect] / (16 / 9), k = res / 1080;
-      return [Math.round(w * k), Math.round(200 * k)];
-    }
-    const k = res / 1080;
-    return [Math.round(STREAM_W[aspect] * k), res];
+    const sw = STREAM_W[aspect][res];
+    // Lower third: 5/6 of the stream width (1600 of 1920), 200 of 1080 high.
+    if (layout === "lower-third") return [Math.round(sw * 5 / 6), Math.round(res * 200 / 1080)];
+    return [sw, res];
   }
   let extra = "";  // preview-only params (result mode / celebration test)
 
