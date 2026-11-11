@@ -10,10 +10,12 @@
 const {S, ID, URLS} = window.LFM;
 const RACE_ID = 999999;
 const T0 = Date.now();
-const START = new Date(Math.ceil((T0 + 75e3) / 1000) * 1000);
-const SESSIONS = [["P", 1], ["Q", 1], ["R", 2]];
+// ?show=live (the builder's "Show race frame"): already 30 s into a long race, no result.
+const LIVE = (window.LFM.PARAMS.get("show") || "").toLowerCase() === "live";
+const SESSIONS = LIVE ? [["P", 1], ["Q", 1], ["R", 30]] : [["P", 1], ["Q", 1], ["R", 2]];
+const START = new Date(Math.ceil((T0 + (LIVE ? -150e3 : 75e3)) / 1000) * 1000);
 const RACE_END = START.getTime() + SESSIONS.reduce((n, [, m]) => n + m, 0) * 60e3;
-const RESULT_AT = RACE_END + 15e3;
+const RESULT_AT = LIVE ? Infinity : RACE_END + 15e3;
 const SIM = 1, CAR_FALLBACK = 32;   // ACC, Ferrari 296 GT3
 const MY_START = 4, MY_FINISH = 1;
 

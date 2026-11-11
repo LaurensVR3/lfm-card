@@ -577,7 +577,7 @@ details p{padding:0 0 18px;color:var(--ink-soft)}
       extra = ""; update();
     });
   $("prevResult").addEventListener("click", () => { extra = "show=result&celebrate=off"; update(); });
-  $("prevFrame").addEventListener("click", () => { extra = "show=live&celebrate=off"; update(); });
+  $("prevFrame").addEventListener("click", () => { extra = `demo=1&show=live&celebrate=off&t=${Date.now()}`; update(); });
   $("prevDemo").addEventListener("click", () => { extra = `demo=1&t=${Date.now()}`; update(); });
   const demos = ["win", "podium", "pb", "promo", "starts"];
   let demo = 0;
