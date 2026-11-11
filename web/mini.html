@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LFM Mini</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/lfm-card/lfm.css">
+<style>
+/* 800x160 card for low-resolution streams. Readability first: solid
+   background, big upright text, strong contrast, nothing moving. */
+.mini{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;gap:12px;padding:0 26px 0 34px;
+  background:#121214;border-radius:12px;box-shadow:inset 0 0 0 2px rgba(255,255,255,.08)}
+.mini::before{content:"";position:absolute;left:0;top:0;bottom:0;width:10px;border-radius:12px 0 0 12px;background:var(--volt)}
+
+.top{display:flex;align-items:center;gap:18px;min-width:0;height:60px}
+.top img{flex:none;width:72px;height:48px;object-fit:cover;border-radius:4px;box-shadow:0 0 0 2px rgba(0,0,0,.8)}
+.name{min-width:0;font-size:48px;font-weight:700;line-height:1;text-transform:uppercase;white-space:nowrap;color:#fff;letter-spacing:.01em}
+.name .last{color:var(--volt)}
+
+.bottom{display:flex;align-items:center;gap:16px;height:52px}
+.elo{flex:none;display:flex;align-items:baseline;gap:10px;color:#fff}
+.elo b{font-size:46px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+.elo span{font-size:28px;font-weight:600;color:#d0d0d4}
+.sep{flex:none;width:3px;height:40px;border-radius:2px;background:rgba(255,255,255,.18)}
+.plates{flex:none;display:flex;align-items:center;--ph:48px;--lfs:30px;--sfs:30px}
+.plates .lplate{font-style:normal}
+.srnum{flex:none;font-size:28px;font-weight:700;color:#fff;font-variant-numeric:tabular-nums}
+.game{flex:none;margin-left:auto;padding:0 14px;line-height:44px;border-radius:6px;border:3px solid var(--volt);
+  font-size:26px;font-weight:700;color:var(--volt);white-space:nowrap}
+</style>
+</head>
+<body>
+<div id="stage">
+  <div class="mini">
+    <div class="top"><img id="flag" alt=""><div class="name" id="name"><span id="first"></span> <span class="last" id="last"></span></div></div>
+    <div class="bottom">
+      <div class="elo"><b id="elo">—</b><span>Elo</span></div>
+      <span class="sep"></span>
+      <div class="plates">
+        <span class="lplate" id="licencePlate"><span id="licence">—</span></span>
+        <span class="splate" id="srPlate"><span id="sr">—</span></span>
+      </div>
+      <span class="srnum" id="srNum"></span>
+      <span class="game" id="game"></span>
+    </div>
+  </div>
+</div>
+
+<script src="/lfm-card/lfm.js"></script>
+<script>
+const {$, S} = LFM;
+LFM.fitStage(800, 160, {fixed: true});
+// Short names: the badge has to stay readable at small sizes.
+const GAME = {acc: "ACC", ac: "AC", ace: "AC EVO", lmu: "LMU", ams2: "AMS2", rr: "RaceRoom", rf2: "rF2"};
+
+LFM.start(() => {
+  const v = S.view;
+  $("flag").hidden = !v.flag;
+  if (v.flag) $("flag").src = v.flag;
+  $("first").textContent = v.first; $("last").textContent = v.last;
+  $("game").textContent = GAME[v.simCode] || v.simCode.toUpperCase();
+  $("elo").textContent = v.rating ?? "—";
+  LFM.paintLicence($("licencePlate"), $("licence"), v.licence);
+  LFM.fitText($("licencePlate"), 230, 30, 22);
+  $("srPlate").hidden = !v.sr;
+  if (v.sr) LFM.paintSR($("srPlate"), $("sr"), v.sr);
+  $("srNum").textContent = v.srNum;
+  // Long names shrink, but never below a readable size; then they're cut off.
+  const name = $("name"), room = 800 - 34 - 26 - 72 - 18;
+  let size = 48;
+  name.style.fontSize = size + "px";
+  while (name.scrollWidth > room && size > 34){ size -= 2; name.style.fontSize = size + "px"; }
+  name.style.overflow = "hidden"; name.style.textOverflow = "ellipsis";
+}, {celebrations: false});  // a banner would only cover the card
+</script>
+</body>
+</html>

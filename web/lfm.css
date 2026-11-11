@@ -62,13 +62,16 @@ body{font-family:var(--sans);color:var(--mist);-webkit-font-smoothing:antialiase
   filter:drop-shadow(0 18px 16px rgba(0,0,0,.7))}
 .coin .back .cap{position:relative;margin-top:2%;font-size:var(--cap-fs,17px);font-weight:600;font-style:italic;
   letter-spacing:.22em;text-transform:uppercase;color:var(--ink-soft);white-space:nowrap}
+/* No custom livery: the back shows the car maker's logo */
+.coin.brand .back img{width:62%;height:40%;object-fit:contain;margin-top:0;filter:drop-shadow(0 8px 10px rgba(0,0,0,.6))}
+.coin.brand .back .cap{margin-top:8%}
 .flip-pop{animation:flippop 1.2s cubic-bezier(.5,0,.2,1)}
 @keyframes flippop{50%{transform:scale(1.045)}}
 
 /* ------------------------------------------------------------ page rotator */
 .ptitle{flex:none;width:136px;align-self:stretch;display:flex;flex-direction:column;justify-content:center;gap:7px;
   border-right:1px solid var(--rule);padding-right:18px}
-.ptitle span{font-size:15px;font-weight:700;font-style:italic;letter-spacing:.26em;color:var(--volt);transition:opacity .3s;white-space:nowrap}
+.ptitle span{display:block;font-size:15px;font-weight:700;font-style:italic;letter-spacing:.26em;color:var(--volt);transition:opacity .3s;white-space:nowrap}
 .ptitle span.swap{opacity:0}
 .ptitle span em{font-style:italic;color:var(--mist);margin-left:.4em}
 .ptitle i{display:block;height:3px;background:var(--rule);overflow:hidden}
@@ -169,3 +172,16 @@ svg.wx{width:30px;height:30px;flex:none}
   animation:spin 9s linear infinite}
 .still *,.still *::before,.still *::after{animation-play-state:paused!important}
 .still .glint,.still .shine{display:none}
+
+/* ------------------------------------------------------------ options */
+/* ?bg=off: no card / scene background (the overlay sits on your own) */
+.nobg .cardbg{background:none!important}
+.nobg .banner,.nobg .sheen,.nobg .grid-lines{display:none!important}
+/* ?hide=logo / banner */
+.hide-logo .logo,.hide-logo .team-logo,.hide-logo .flogo,.hide-logo .fteam{display:none!important}
+.hide-banner .banner{display:none!important}
+
+/* Data older than 10 minutes (LFM unreachable) */
+.stale{position:absolute;right:14px;bottom:10px;z-index:60;padding:4px 12px;border-radius:4px;
+  background:rgba(20,20,23,.9);border:1px solid rgba(255,92,92,.5);color:var(--down);
+  font-size:14px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;white-space:nowrap}

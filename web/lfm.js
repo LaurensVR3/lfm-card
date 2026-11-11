@@ -39,12 +39,222 @@ const FLIP_S = PARAMS.has("flip") ? Math.max(0, Number(PARAMS.get("flip")) || 0)
 const MOTION = PARAMS.get("motion") !== "off";
 const SHOW = (PARAMS.get("show") || "").toLowerCase();   // "result" previews result mode
 const CELEBRATE = (PARAMS.get("celebrate") || "").toLowerCase();
-const BROADCAST = PARAMS.get("broadcast") !== "off";
+// ?hide=field,form,... switches parts off (see the manual); "broadcast" = ?broadcast=off.
+const HIDE = new Set((PARAMS.get("hide") || "").toLowerCase().split(/[\s,]+/).filter(Boolean));
+const hidden = k => HIDE.has(k);
+const BROADCAST = PARAMS.get("broadcast") !== "off" && !HIDE.has("broadcast");
 const BROADCAST_MS = 10 * 60e3;  // YouTube schedule refresh (nginx caches it for as long)
 // Official LFM Twitch channels, as listed on lowfuelmotorsport.com.
 const LFM_TWITCH = {lowfuelmotorsport_en:"EN", lowfuelmotorsport_de:"DE", lowfuelmotorsport_es:"ES"};
 const LFM_YOUTUBE = "youtube.com/@LowFuelMotorsport";
+// Option lookup that ignores case, so ?HEXCODE= and ?hexcode= both work.
+const param = name => { for (const [k, v] of PARAMS) if (k.toLowerCase() === name) return v; return null; };
+// ?HEXCODE=FF0033 (or F03, #FF0033): accent colour instead of the licence colour.
+const HEXCODE = (() => {
+  const v = (param("hexcode") || param("accent") || "").trim().replace(/^#/, "");
+  if (/^[0-9a-f]{6}$/i.test(v)) return "#" + v;
+  if (/^[0-9a-f]{3}$/i.test(v)) return "#" + v.replace(/./g, c => c + c);
+  return null;
+})();
+// ?aspect=21:9 / 32:9 forces the canvas shape; otherwise it follows the OBS source size.
+const ASPECT = (() => {
+  const v = (param("aspect") || "").trim(), m = v.match(/^(\d+(?:\.\d+)?)\s*[:x\/]\s*(\d+(?:\.\d+)?)$/i);
+  const r = m ? m[1] / m[2] : Number(v);
+  return r > 0 ? r : null;
+})();
+/* ------------------------------------------------------------------ language
+   ?lang=de|es|fr|it|nl|pt. Static labels are translated by matching their text
+   on load; strings built in code go through t(). Missing keys stay English. */
+const LANG = (param("lang") || "").toLowerCase().slice(0, 2);
+const I18N = {
+  de: {
+    "{n} turns": "{n} Kurven",
+    "Practice": "Training", "Qualifying": "Qualifying", "Quali": "Quali", "Race": "Rennen",
+    "{n} min ago": "vor {n} Min.", "{n}h ago": "vor {n} Std.", "yesterday": "gestern", "{n} days ago": "vor {n} Tagen",
+    "Heavy rain": "Starkregen", "Rain": "Regen", "Light rain": "Leichter Regen", "Clear": "Klar", "Partly cloudy": "Leicht bewölkt",
+    "Cloudy": "Bewölkt", "Overcast": "Bedeckt", "Storm": "Gewitter", "Snow": "Schnee", "Fog": "Nebel", "Hazy": "Dunstig",
+    "Random": "Zufällig", "Real weather": "Echtes Wetter", "Dynamic": "Dynamisch", "Static": "Statisch",
+    "Victory": "Sieg", "Win #{n}": "Sieg Nr. {n}", "Podium": "Podium", "New personal best": "Neue Bestmarke",
+    "{n} rating": "{n} Rating", "{n} starts": "{n} Starts", "on Low Fuel Motorsport": "auf Low Fuel Motorsport",
+    "Promoted": "Aufgestiegen", "Licence": "Lizenz", "{n} ranked races": "{n} gewertete Rennen",
+    "Racing now": "Rennen läuft", "Next race": "Nächstes Rennen", "{n} driver": "{n} Fahrer", "{n} drivers": "{n} Fahrer",
+    "LIVE": "LIVE", "Live": "Live", "in {t}": "in {t}", "Last race": "Letztes Rennen", "from P{n}": "von P{n}", "of {n}": "von {n}",
+    "Starts": "Starts", "Wins": "Siege", "Podiums": "Podien", "Poles": "Poles", "Podium rate": "Podiumsquote",
+    "{n} min race": "{n} Min. Rennen", "Seed of {n}": "Setzplatz von {n}", "Start": "Start", "Best lap": "Beste Runde",
+    "Field": "Feld", "Form": "Form", "First LFM race here": "Erstes LFM-Rennen hier", "start here": "Start hier",
+    "starts here": "Starts hier", "win": "Sieg", "wins": "Siege", "podium": "Podium", "podiums": "Podien", "Best": "Bestes",
+    "Last": "Zuletzt", "{n} streaming": "{n} streamen", "Live now on LFM": "Jetzt live bei LFM",
+    "Official LFM broadcast": "Offizielle LFM-Übertragung", "Seed P{p} of {n}": "Setzplatz P{p} von {n}",
+    "Starting": "Start in", "Finished": "Beendet", "Results soon": "Ergebnis folgt", "Week {n}": "Woche {n}", "Door": "Startnummer",
+    "Seed": "Setzplatz", "Weather": "Wetter", "rain": "Regen", "Conditions": "Bedingungen", "Car": "Auto", "Finish": "Ziel",
+    "Rating": "Rating", "Safety": "Safety", "Incidents": "Vorfälle", "Starting soon": "Gleich geht's los", "{s} now": "{s} läuft",
+    "Started {t}": "Gestartet {t}", "Result": "Ergebnis", "Stay tuned": "Dranbleiben", "TBA": "Folgt",
+    "No race scheduled yet": "Noch kein Rennen geplant", "Entry list": "Starterliste", "Results": "Ergebnis",
+    "LFM data {n} min old": "LFM-Daten {n} Min. alt", "Career": "Karriere", "Details": "Details", "Division": "Division",
+    "Driver profile": "Fahrerprofil", "Grid": "Startplatz", "Next": "Nächstes", "Track": "Strecke", "Race details": "Renndetails",
+    "Safety rating": "Safety Rating", "SOF": "SOF", "last 10": "letzte 10", "LFM RATING": "LFM RATING", "LFM Rating": "LFM Rating",
+  },
+  es: {
+    "{n} turns": "{n} curvas",
+    "Practice": "Libres", "Qualifying": "Clasificación", "Quali": "Clasif.", "Race": "Carrera",
+    "{n} min ago": "hace {n} min", "{n}h ago": "hace {n} h", "yesterday": "ayer", "{n} days ago": "hace {n} días",
+    "Heavy rain": "Lluvia fuerte", "Rain": "Lluvia", "Light rain": "Lluvia ligera", "Clear": "Despejado", "Partly cloudy": "Parcialmente nublado",
+    "Cloudy": "Nublado", "Overcast": "Cubierto", "Storm": "Tormenta", "Snow": "Nieve", "Fog": "Niebla", "Hazy": "Bruma",
+    "Random": "Aleatorio", "Real weather": "Clima real", "Dynamic": "Dinámico", "Static": "Estático",
+    "Victory": "Victoria", "Win #{n}": "Victoria n.º {n}", "Podium": "Podio", "New personal best": "Nuevo récord personal",
+    "{n} rating": "{n} de rating", "{n} starts": "{n} salidas", "on Low Fuel Motorsport": "en Low Fuel Motorsport",
+    "Promoted": "Ascendido", "Licence": "Licencia", "{n} ranked races": "{n} carreras puntuables",
+    "Racing now": "En carrera", "Next race": "Próxima carrera", "{n} driver": "{n} piloto", "{n} drivers": "{n} pilotos",
+    "LIVE": "EN VIVO", "Live": "En vivo", "in {t}": "en {t}", "Last race": "Última carrera", "from P{n}": "desde P{n}", "of {n}": "de {n}",
+    "Starts": "Salidas", "Wins": "Victorias", "Podiums": "Podios", "Poles": "Poles", "Podium rate": "% de podios",
+    "{n} min race": "carrera de {n} min", "Seed of {n}": "Seed de {n}", "Start": "Salida", "Best lap": "Mejor vuelta",
+    "Field": "Parrilla", "Form": "Forma", "First LFM race here": "Primera carrera LFM aquí", "start here": "salida aquí",
+    "starts here": "salidas aquí", "win": "victoria", "wins": "victorias", "podium": "podio", "podiums": "podios", "Best": "Mejor",
+    "Last": "Última", "{n} streaming": "{n} en directo", "Live now on LFM": "En directo en LFM",
+    "Official LFM broadcast": "Retransmisión oficial de LFM", "Seed P{p} of {n}": "Seed P{p} de {n}",
+    "Starting": "Empieza en", "Finished": "Terminada", "Results soon": "Resultados pronto", "Week {n}": "Semana {n}", "Door": "Dorsal",
+    "Seed": "Seed", "Weather": "Clima", "rain": "lluvia", "Conditions": "Condiciones", "Car": "Coche", "Finish": "Final",
+    "Rating": "Rating", "Safety": "Seguridad", "Incidents": "Incidentes", "Starting soon": "Empezamos pronto", "{s} now": "{s} en curso",
+    "Started {t}": "Empezó {t}", "Result": "Resultado", "Stay tuned": "Atentos", "TBA": "Pronto",
+    "No race scheduled yet": "Sin carrera programada", "Entry list": "Inscritos", "Results": "Resultados",
+    "LFM data {n} min old": "Datos de LFM de hace {n} min", "Career": "Trayectoria", "Details": "Detalles", "Division": "División",
+    "Driver profile": "Perfil del piloto", "Grid": "Parrilla", "Next": "Próxima", "Track": "Circuito", "Race details": "Detalles",
+    "Safety rating": "Safety rating", "last 10": "últimas 10", "LFM RATING": "RATING LFM", "LFM Rating": "Rating LFM",
+  },
+  fr: {
+    "{n} turns": "{n} virages",
+    "Practice": "Essais", "Qualifying": "Qualifications", "Quali": "Qualifs", "Race": "Course",
+    "{n} min ago": "il y a {n} min", "{n}h ago": "il y a {n} h", "yesterday": "hier", "{n} days ago": "il y a {n} jours",
+    "Heavy rain": "Forte pluie", "Rain": "Pluie", "Light rain": "Pluie légère", "Clear": "Dégagé", "Partly cloudy": "Partiellement nuageux",
+    "Cloudy": "Nuageux", "Overcast": "Couvert", "Storm": "Orage", "Snow": "Neige", "Fog": "Brouillard", "Hazy": "Brumeux",
+    "Random": "Aléatoire", "Real weather": "Météo réelle", "Dynamic": "Dynamique", "Static": "Statique",
+    "Victory": "Victoire", "Win #{n}": "Victoire n° {n}", "Podium": "Podium", "New personal best": "Nouveau record perso",
+    "{n} rating": "{n} de rating", "{n} starts": "{n} départs", "on Low Fuel Motorsport": "sur Low Fuel Motorsport",
+    "Promoted": "Promu", "Licence": "Licence", "{n} ranked races": "{n} courses classées",
+    "Racing now": "En course", "Next race": "Prochaine course", "{n} driver": "{n} pilote", "{n} drivers": "{n} pilotes",
+    "LIVE": "EN DIRECT", "Live": "En direct", "in {t}": "dans {t}", "Last race": "Dernière course", "from P{n}": "depuis P{n}", "of {n}": "sur {n}",
+    "Starts": "Départs", "Wins": "Victoires", "Podiums": "Podiums", "Poles": "Poles", "Podium rate": "Taux de podium",
+    "{n} min race": "course de {n} min", "Seed of {n}": "Seed sur {n}", "Start": "Départ", "Best lap": "Meilleur tour",
+    "Field": "Plateau", "Form": "Forme", "First LFM race here": "Première course LFM ici", "start here": "départ ici",
+    "starts here": "départs ici", "win": "victoire", "wins": "victoires", "podium": "podium", "podiums": "podiums", "Best": "Meilleur",
+    "Last": "Dernier", "{n} streaming": "{n} en stream", "Live now on LFM": "En direct sur LFM",
+    "Official LFM broadcast": "Diffusion officielle LFM", "Seed P{p} of {n}": "Seed P{p} sur {n}",
+    "Starting": "Départ dans", "Finished": "Terminé", "Results soon": "Résultats bientôt", "Week {n}": "Semaine {n}", "Door": "Numéro",
+    "Seed": "Seed", "Weather": "Météo", "rain": "pluie", "Conditions": "Conditions", "Car": "Voiture", "Finish": "Arrivée",
+    "Rating": "Rating", "Safety": "Sécurité", "Incidents": "Incidents", "Starting soon": "Ça commence bientôt", "{s} now": "{s} en cours",
+    "Started {t}": "Départ {t}", "Result": "Résultat", "Stay tuned": "Restez connectés", "TBA": "À venir",
+    "No race scheduled yet": "Aucune course prévue", "Entry list": "Engagés", "Results": "Résultats",
+    "LFM data {n} min old": "Données LFM d'il y a {n} min", "Career": "Carrière", "Details": "Détails", "Division": "Division",
+    "Driver profile": "Profil pilote", "Grid": "Grille", "Next": "Suivante", "Track": "Circuit", "Race details": "Détails",
+    "Safety rating": "Safety rating", "last 10": "10 dernières", "LFM RATING": "RATING LFM", "LFM Rating": "Rating LFM",
+  },
+  it: {
+    "{n} turns": "{n} curve",
+    "Practice": "Libere", "Qualifying": "Qualifiche", "Quali": "Quali", "Race": "Gara",
+    "{n} min ago": "{n} min fa", "{n}h ago": "{n} h fa", "yesterday": "ieri", "{n} days ago": "{n} giorni fa",
+    "Heavy rain": "Pioggia forte", "Rain": "Pioggia", "Light rain": "Pioggia leggera", "Clear": "Sereno", "Partly cloudy": "Poco nuvoloso",
+    "Cloudy": "Nuvoloso", "Overcast": "Coperto", "Storm": "Temporale", "Snow": "Neve", "Fog": "Nebbia", "Hazy": "Foschia",
+    "Random": "Casuale", "Real weather": "Meteo reale", "Dynamic": "Dinamico", "Static": "Statico",
+    "Victory": "Vittoria", "Win #{n}": "Vittoria n. {n}", "Podium": "Podio", "New personal best": "Nuovo record personale",
+    "{n} rating": "{n} di rating", "{n} starts": "{n} partenze", "on Low Fuel Motorsport": "su Low Fuel Motorsport",
+    "Promoted": "Promosso", "Licence": "Licenza", "{n} ranked races": "{n} gare classificate",
+    "Racing now": "In gara", "Next race": "Prossima gara", "{n} driver": "{n} pilota", "{n} drivers": "{n} piloti",
+    "LIVE": "LIVE", "Live": "Live", "in {t}": "tra {t}", "Last race": "Ultima gara", "from P{n}": "da P{n}", "of {n}": "su {n}",
+    "Starts": "Partenze", "Wins": "Vittorie", "Podiums": "Podi", "Poles": "Pole", "Podium rate": "% podi",
+    "{n} min race": "gara di {n} min", "Seed of {n}": "Seed su {n}", "Start": "Partenza", "Best lap": "Giro veloce",
+    "Field": "Griglia", "Form": "Forma", "First LFM race here": "Prima gara LFM qui", "start here": "partenza qui",
+    "starts here": "partenze qui", "win": "vittoria", "wins": "vittorie", "podium": "podio", "podiums": "podi", "Best": "Migliore",
+    "Last": "Ultima", "{n} streaming": "{n} in streaming", "Live now on LFM": "Ora in diretta su LFM",
+    "Official LFM broadcast": "Diretta ufficiale LFM", "Seed P{p} of {n}": "Seed P{p} su {n}",
+    "Starting": "Si parte tra", "Finished": "Finita", "Results soon": "Risultati a breve", "Week {n}": "Settimana {n}", "Door": "Numero",
+    "Seed": "Seed", "Weather": "Meteo", "rain": "pioggia", "Conditions": "Condizioni", "Car": "Auto", "Finish": "Arrivo",
+    "Rating": "Rating", "Safety": "Sicurezza", "Incidents": "Incidenti", "Starting soon": "Si parte a breve", "{s} now": "{s} in corso",
+    "Started {t}": "Partita {t}", "Result": "Risultato", "Stay tuned": "Restate sintonizzati", "TBA": "A breve",
+    "No race scheduled yet": "Nessuna gara in programma", "Entry list": "Iscritti", "Results": "Risultati",
+    "LFM data {n} min old": "Dati LFM di {n} min fa", "Career": "Carriera", "Details": "Dettagli", "Division": "Divisione",
+    "Driver profile": "Profilo pilota", "Grid": "Griglia", "Next": "Prossima", "Track": "Circuito", "Race details": "Dettagli",
+    "Safety rating": "Safety rating", "last 10": "ultime 10", "LFM RATING": "RATING LFM", "LFM Rating": "Rating LFM",
+  },
+  nl: {
+    "{n} turns": "{n} bochten",
+    "Practice": "Training", "Qualifying": "Kwalificatie", "Quali": "Kwali", "Race": "Race",
+    "{n} min ago": "{n} min geleden", "{n}h ago": "{n} u geleden", "yesterday": "gisteren", "{n} days ago": "{n} dagen geleden",
+    "Heavy rain": "Zware regen", "Rain": "Regen", "Light rain": "Lichte regen", "Clear": "Helder", "Partly cloudy": "Half bewolkt",
+    "Cloudy": "Bewolkt", "Overcast": "Zwaar bewolkt", "Storm": "Onweer", "Snow": "Sneeuw", "Fog": "Mist", "Hazy": "Nevelig",
+    "Random": "Willekeurig", "Real weather": "Echt weer", "Dynamic": "Dynamisch", "Static": "Statisch",
+    "Victory": "Overwinning", "Win #{n}": "Zege nr. {n}", "Podium": "Podium", "New personal best": "Nieuw persoonlijk record",
+    "{n} rating": "{n} rating", "{n} starts": "{n} starts", "on Low Fuel Motorsport": "op Low Fuel Motorsport",
+    "Promoted": "Gepromoveerd", "Licence": "Licentie", "{n} ranked races": "{n} gerankte races",
+    "Racing now": "Nu aan het racen", "Next race": "Volgende race", "{n} driver": "{n} coureur", "{n} drivers": "{n} coureurs",
+    "LIVE": "LIVE", "Live": "Live", "in {t}": "over {t}", "Last race": "Laatste race", "from P{n}": "vanaf P{n}", "of {n}": "van {n}",
+    "Starts": "Starts", "Wins": "Zeges", "Podiums": "Podiums", "Poles": "Poles", "Podium rate": "Podiumratio",
+    "{n} min race": "race van {n} min", "Seed of {n}": "Seed van {n}", "Start": "Start", "Best lap": "Snelste ronde",
+    "Field": "Veld", "Form": "Vorm", "First LFM race here": "Eerste LFM-race hier", "start here": "start hier",
+    "starts here": "starts hier", "win": "zege", "wins": "zeges", "podium": "podium", "podiums": "podiums", "Best": "Beste",
+    "Last": "Laatste", "{n} streaming": "{n} streamen", "Live now on LFM": "Nu live op LFM",
+    "Official LFM broadcast": "Officiële LFM-uitzending", "Seed P{p} of {n}": "Seed P{p} van {n}",
+    "Starting": "Start over", "Finished": "Afgelopen", "Results soon": "Uitslag volgt", "Week {n}": "Week {n}", "Door": "Startnummer",
+    "Seed": "Seed", "Weather": "Weer", "rain": "regen", "Conditions": "Omstandigheden", "Car": "Auto", "Finish": "Finish",
+    "Rating": "Rating", "Safety": "Safety", "Incidents": "Incidenten", "Starting soon": "We beginnen zo", "{s} now": "{s} bezig",
+    "Started {t}": "Gestart {t}", "Result": "Uitslag", "Stay tuned": "Blijf kijken", "TBA": "Volgt",
+    "No race scheduled yet": "Nog geen race gepland", "Entry list": "Deelnemers", "Results": "Uitslag",
+    "LFM data {n} min old": "LFM-data {n} min oud", "Career": "Carrière", "Details": "Details", "Division": "Divisie",
+    "Driver profile": "Coureursprofiel", "Grid": "Grid", "Next": "Volgende", "Track": "Circuit", "Race details": "Racedetails",
+    "Safety rating": "Safety rating", "last 10": "laatste 10", "LFM RATING": "LFM RATING", "LFM Rating": "LFM Rating",
+  },
+  pt: {
+    "{n} turns": "{n} curvas",
+    "Practice": "Treino", "Qualifying": "Qualificação", "Quali": "Quali", "Race": "Corrida",
+    "{n} min ago": "há {n} min", "{n}h ago": "há {n} h", "yesterday": "ontem", "{n} days ago": "há {n} dias",
+    "Heavy rain": "Chuva forte", "Rain": "Chuva", "Light rain": "Chuva fraca", "Clear": "Limpo", "Partly cloudy": "Parcialmente nublado",
+    "Cloudy": "Nublado", "Overcast": "Encoberto", "Storm": "Tempestade", "Snow": "Neve", "Fog": "Nevoeiro", "Hazy": "Névoa",
+    "Random": "Aleatório", "Real weather": "Clima real", "Dynamic": "Dinâmico", "Static": "Estático",
+    "Victory": "Vitória", "Win #{n}": "Vitória n.º {n}", "Podium": "Pódio", "New personal best": "Novo recorde pessoal",
+    "{n} rating": "{n} de rating", "{n} starts": "{n} largadas", "on Low Fuel Motorsport": "no Low Fuel Motorsport",
+    "Promoted": "Promovido", "Licence": "Licença", "{n} ranked races": "{n} corridas ranqueadas",
+    "Racing now": "Em corrida", "Next race": "Próxima corrida", "{n} driver": "{n} piloto", "{n} drivers": "{n} pilotos",
+    "LIVE": "AO VIVO", "Live": "Ao vivo", "in {t}": "em {t}", "Last race": "Última corrida", "from P{n}": "de P{n}", "of {n}": "de {n}",
+    "Starts": "Largadas", "Wins": "Vitórias", "Podiums": "Pódios", "Poles": "Poles", "Podium rate": "% de pódios",
+    "{n} min race": "corrida de {n} min", "Seed of {n}": "Seed de {n}", "Start": "Largada", "Best lap": "Melhor volta",
+    "Field": "Grid", "Form": "Forma", "First LFM race here": "Primeira corrida LFM aqui", "start here": "largada aqui",
+    "starts here": "largadas aqui", "win": "vitória", "wins": "vitórias", "podium": "pódio", "podiums": "pódios", "Best": "Melhor",
+    "Last": "Última", "{n} streaming": "{n} transmitindo", "Live now on LFM": "Ao vivo agora na LFM",
+    "Official LFM broadcast": "Transmissão oficial da LFM", "Seed P{p} of {n}": "Seed P{p} de {n}",
+    "Starting": "Começa em", "Finished": "Terminada", "Results soon": "Resultados em breve", "Week {n}": "Semana {n}", "Door": "Número",
+    "Seed": "Seed", "Weather": "Clima", "rain": "chuva", "Conditions": "Condições", "Car": "Carro", "Finish": "Chegada",
+    "Rating": "Rating", "Safety": "Segurança", "Incidents": "Incidentes", "Starting soon": "Começando em breve", "{s} now": "{s} agora",
+    "Started {t}": "Começou {t}", "Result": "Resultado", "Stay tuned": "Fiquem ligados", "TBA": "Em breve",
+    "No race scheduled yet": "Nenhuma corrida marcada", "Entry list": "Inscritos", "Results": "Resultados",
+    "LFM data {n} min old": "Dados da LFM de {n} min atrás", "Career": "Carreira", "Details": "Detalhes", "Division": "Divisão",
+    "Driver profile": "Perfil do piloto", "Grid": "Grid", "Next": "Próxima", "Track": "Circuito", "Race details": "Detalhes",
+    "Safety rating": "Safety rating", "last 10": "últimas 10", "LFM RATING": "RATING LFM", "LFM Rating": "Rating LFM",
+  },
+};
+function t(key, vars){
+  let out = (I18N[LANG] && I18N[LANG][key]) || key;
+  if (vars) out = out.replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? "");
+  return out;
+}
+function translatePage(){
+  // Page titles of the rotators / side panel: data-title stays the ?page= key.
+  document.querySelectorAll("[data-title]").forEach(el => el.dataset.label = t(el.dataset.title));
+  const dict = I18N[LANG];
+  if (!dict) return;
+  document.documentElement.lang = LANG;
+  const walk = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  for (let n; (n = walk.nextNode());){
+    const key = n.nodeValue.trim();
+    if (key && dict[key]) n.nodeValue = n.nodeValue.replace(key, dict[key]);
+  }
+}
+
+// ?demo=1: a made-up race starting in a minute, with your real profile (demo.js).
+const DEMO = /^(1|on|true|yes)$/i.test(param("demo") || "");
+// ?bg=off: no card / scene background, for putting the overlay over your own.
+const NOBG = /^(off|none|0|transparent)$/i.test(param("bg") || "");
 if (!MOTION) document.documentElement.classList.add("still");
+if (NOBG) document.documentElement.classList.add("nobg");
+HIDE.forEach(k => document.documentElement.classList.add("hide-" + k));
 
 // The JSON APIs send Access-Control-Allow-Origin: *, so they are fetched directly.
 // The original card HTML (only source of the next-race info) isn't CORS-enabled,
@@ -65,6 +275,8 @@ const URLS = {
   youtube: `/lfm-api/youtube-streams`,
   // Screenshot of an uploaded LFM livery (transparent PNG). The id is base64'd, as on lowfuelmotorsport.com.
   livery: id => `${API}/liveries/screenshot/${btoa(String(id))}?width=1200`,
+  // Manufacturer logo (transparent PNG); file names come from the car list ("ferrari.png").
+  logo: file => `https://cdn.lowfuelmotorsport.com/images/manufacturers/${file}`,
 };
 
 // Plate colours, taken from the original card's stylesheet (.platenice.* / .S, .A1 ...).
@@ -95,19 +307,34 @@ const flagUrl = cc => cc ? `https://flagcdn.com/${cc.toLowerCase()}.svg` : "";
 const countryName = cc => { try { return regionNames.of(cc.toUpperCase()); } catch { return cc; } };
 const pad = n => String(n).padStart(2, "0");
 const licenceKey = l => String(l || "").toUpperCase().replace(/[+\s]/g, "");
-const getJSON = url => fetch(url, {cache:"no-store"}).then(r => r.ok ? r.json() : Promise.reject(r.status));
-const getText = url => fetch(url, {cache:"no-store"}).then(r => r.ok ? r.text() : Promise.reject(r.status));
+// Demo mode answers some URLs itself (a made-up race); everything else is fetched.
+const demoHit = url => DEMO && window.LFM_DEMO ? window.LFM_DEMO.handle(url) : null;
+const getJSON = url => demoHit(url) || fetch(url, {cache:"no-store"}).then(r => r.ok ? r.json() : Promise.reject(r.status));
+const getText = url => demoHit(url) || fetch(url, {cache:"no-store"}).then(r => r.ok ? r.text() : Promise.reject(r.status));
 const store = {
   get(k){ try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
   set(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
 };
 
-// Scale the design canvas to fit the OBS source.
-function fitStage(w, h){
-  const stage = $("stage");
-  stage.style.setProperty("--w", w + "px");
-  stage.style.setProperty("--h", h + "px");
-  const fit = () => stage.style.setProperty("--s", Math.min(innerWidth / w, innerHeight / h));
+// Scale the design canvas to fit the OBS source. The height is fixed; the
+// width grows from the 16:9 design (w) up to 32:9 (2 * w) to match the source,
+// or the ?aspect= option. <html> gets .wide (about 21:9 and up) and .ultra
+// (about 32:9) so layouts can use the extra room. STAGE.w is the canvas width.
+const STAGE = {w: 0, h: 0, wide: false, ultra: false};
+// opts.fixed: the canvas keeps its shape (mini card).
+function fitStage(w, h, opts = {}){
+  const stage = $("stage"), root = document.documentElement.classList;
+  const fit = () => {
+    const want = ASPECT ? w * ASPECT / (16 / 9) : h * innerWidth / innerHeight;
+    const cw = opts.fixed ? w : Math.round(Math.min(2 * w, Math.max(w, want || w)));
+    const changed = cw !== STAGE.w;
+    Object.assign(STAGE, {w: cw, h, wide: cw >= 1.15 * w, ultra: cw >= 1.65 * w});
+    stage.style.setProperty("--w", cw + "px");
+    stage.style.setProperty("--h", h + "px");
+    stage.style.setProperty("--s", Math.min(innerWidth / cw, innerHeight / h));
+    root.toggle("wide", STAGE.wide); root.toggle("ultra", STAGE.ultra);
+    if (changed && S.view) render(S);  // re-fit text and lists to the new width
+  };
   addEventListener("resize", fit); fit();
 }
 
@@ -141,11 +368,11 @@ function countdown(ms){
 }
 function ago(date){
   const m = Math.max(0, Math.round((Date.now() - date) / 60000));
-  if (m < 60) return `${m} min ago`;
+  if (m < 60) return t("{n} min ago", {n: m});
   const h = Math.round(m / 60);
-  if (h < 24) return `${h}h ago`;
+  if (h < 24) return t("{n}h ago", {n: h});
   const d = Math.round(h / 24);
-  return d === 1 ? "yesterday" : `${d} days ago`;
+  return d === 1 ? t("yesterday") : t("{n} days ago", {n: d});
 }
 const signed = (n, digits = 0) => n == null ? "" : (n > 0 ? "+" : n < 0 ? "−" : "±") + Math.abs(n).toFixed(digits);
 const deltaClass = n => !n ? "flat" : n > 0 ? "up" : "down";
@@ -159,13 +386,13 @@ const BG_LUM = luminance([20, 20, 22]);  // --bg
 
 // Set the accent from a #rrggbb colour (null = Lavaro volt). Dark licence
 // colours (Legend purple, Diamond blue, Iron) are lightened just enough to read
-// on the dark card, keeping their hue.
-function setAccent(hex){
+// on the dark card, keeping their hue. A ?HEXCODE= colour is used as given.
+function setAccent(hex, exact = false){
   const root = document.documentElement.style;
   if (!hex){ for (const p of ["--volt","--volt-rgb","--on-volt"]) root.removeProperty(p); return; }
   const base = hex.match(/\w\w/g).map(h => parseInt(h, 16));
   let rgb = base;
-  for (let t = 0; t <= 1 && (luminance(rgb) + 0.05) / (BG_LUM + 0.05) < 3.2; t += 0.05)
+  for (let t = 0; !exact && t <= 1 && (luminance(rgb) + 0.05) / (BG_LUM + 0.05) < 3.2; t += 0.05)
     rgb = base.map(v => Math.round(v + (255 - v) * t));
   root.setProperty("--volt", `rgb(${rgb})`);
   root.setProperty("--volt-rgb", rgb.join(","));
@@ -201,13 +428,18 @@ const S = {
   livery: null,    // {url, car}
   mode: "idle",    // "next" | "live" | "result" | "idle"
   promo: null,     // {licence, at} when the licence went up recently
+  okAt: 0,         // last successful profile fetch
   broadcast: null, // official LFM stream of the next race, see loadBroadcast()
 };
-let carNames = null;
+let carNames = null, carLogos = new Map();
+const realLogo = f => f && !/placeholder/i.test(f) ? f : null;
 const raceCache = new Map();  // finished race id -> {livery, bestLap, classPos}
 
 async function loadCarNames(){
-  if (!carNames) carNames = getJSON(URLS.cars).then(cars => new Map(cars.map(c => [`${c.sim_id}:${c.server_value}`, c.car_name])));
+  if (!carNames) carNames = getJSON(URLS.cars).then(cars => {
+    carLogos = new Map(cars.filter(c => realLogo(c.thumbnail)).map(c => [`${c.sim_id}:${c.server_value}`, c.thumbnail]));
+    return new Map(cars.map(c => [`${c.sim_id}:${c.server_value}`, c.car_name]));
+  });
   return carNames;
 }
 
@@ -252,14 +484,14 @@ function parseRace(race, cars){
   const entries = (race.participants && race.participants.entries) || [];
   const me = entries.find(e => String(e.user_id) === ID);
   const sim = Number((race.track && race.track.sim_id) || (race.event && race.event.sim_id)) || null;
-  const t = race.track, ev = race.event || {};
+  const trk = race.track, ev = race.event || {};
   const info = {
     raceId: Number(race.race_id),
     sim,
     series: ev.event_name || "",
     week: Number(race.season_week) || null,
-    track: t ? {name: t.track_name, country: t.country, km: t.km, turns: t.turns || null,
-                city: t.city || "", image: t.thumbnail || ""} : null,
+    track: trk ? {name: trk.track_name, country: trk.country, km: trk.km, turns: trk.turns || null,
+                city: trk.city || "", image: trk.thumbnail || ""} : null,
     sof: race.sof || null,
     drivers: entries.length,
     field: [],
@@ -281,6 +513,7 @@ function parseRace(race, cars){
                   live: !!e.is_live, team: e.team_name || "", car: cars ? cars.get(`${sim}:${e.car_model}`) : null}));
     info.streamers = split.filter(e => e.is_live).length;
     info.car = cars ? cars.get(`${sim}:${me.car_model}`) : null;
+    info.carLogo = carLogos.get(`${sim}:${me.car_model}`) || null;
     info.door = me.raceNumber;
     info.livery = me.livery || null;
     info.seed = rivals.indexOf(me) + 1;
@@ -298,6 +531,10 @@ function parseRace(race, cars){
   }
 
   Object.assign(info, parseServer(race));
+  if (info.weather){
+    info.weather.label = t(info.weather.label);
+    if (info.weather.mode) info.weather.mode = t(info.weather.mode);
+  }
   // Fallback race length from the event blurb, e.g. "GT3 + GT4 Multiclass / 75 min."
   const m = race.event && /(\d+)\s*min/i.exec(race.event.website_short_text || "");
   info.raceMinutes = (info.sessions.find(x => x.type === "R") || {}).minutes || (m ? Number(m[1]) : null);
@@ -310,7 +547,7 @@ function sessionTimes(start, sessions){
   let t = start.getTime();
   return (sessions || []).map(s => { const at = new Date(t); t += s.minutes * 60e3; return {...s, at, end: new Date(t)}; });
 }
-const SESSION_NAMES = {P: "Practice", Q: "Qualifying", R: "Race"};
+const SESSION_NAMES = {P: t("Practice"), Q: t("Qualifying"), R: t("Race")};
 
 // Each sim's server config has its own shape. Returns
 //   weather:  {icon, label, temp?, rain? (0..1), mode} or null
@@ -430,7 +667,7 @@ function makeResult(r){
     track: r.track_name, car: r.car_name || r.car, carClass: r.class,
     start: r.start_pos || null, finish: r.finishing_pos || 0, dnf: !r.finishing_pos,
     elo: r.rating_change ?? null, sr: r.sr_change ?? null, incidents: r.incidents ?? null,
-    points: Math.round(r.points || 0) || null, split,
+    points: Math.round(r.points || 0) || null, split, carLogo: realLogo(r.thumbnail),
     sof: (split > 1 && r[`split${split}_sof`]) || r.sof || null,
   };
 }
@@ -451,9 +688,36 @@ async function loadResultRace(id){
   if (!row) walk(race.race_results_splits, 0);
   const info = {livery: (me && me.livery) || null,
                 bestLap: row && row.bestlap ? row.bestlap.replace(/^00:|^0(?=\d:)/, "") : null,
-                classPos: row ? row.class_position : null};
+                classPos: row ? row.class_position : null,
+                results: parseResults(race, row, me)};
   raceCache.set(id, info);
   return info;
+}
+
+// Finishing order of this driver's class in their split:
+// race_results_splits[split - 1][class].OVERALL, else race_results[class].OVERALL.
+function parseResults(race, row, me){
+  const split = (row && row.split) || (me && me.split) || 1;
+  const cls = (row && row.class) || (me && me.car_class);
+  const pick = o => {
+    const c = o && cls && o[cls];
+    return c && (Array.isArray(c) ? c : c.OVERALL || Object.values(c).find(Array.isArray)) || null;
+  };
+  const splits = race.race_results_splits;
+  const list = pick(Array.isArray(splits) ? splits[split - 1] : splits && splits[split])
+            || (pick(race.race_results) || []).filter(x => (x.split || 1) === split);
+  const pos = x => x.class_position || x.position || 999;
+  const sorted = list.slice().sort((a, b) => pos(a) - pos(b));
+  const laps = sorted.length ? sorted[0].laps : 0;
+  return sorted.map(x => ({
+    pos: pos(x), door: x.car_number, first: x.vorname || "", last: x.nachname || "", origin: x.origin,
+    out: x.dsq ? "DSQ" : x.dns ? "DNS" : x.dnf ? "DNF" : "",
+    // Winner: race time without milliseconds; others: gap in tenths ("+2.2") or laps down.
+    gap: x === sorted[0] ? String(x.time || "").replace(/\.\d+$/, "").replace(/^0(?=\d:)/, "")
+       : laps && x.laps < laps ? `+${laps - x.laps}L`
+       : "+" + String(x.gap || "").replace(/^00:/, "").replace(/^0(?=\d)/, "").replace(/(\.\d)\d+$/, "$1"),
+    elo: x.ratingGain ?? null, gain: x.positionGain ?? null, me: String(x.user_id) === ID,
+  }));
 }
 
 // Rating after each race in this sim, newest first, rebuilt from the current
@@ -619,11 +883,17 @@ let loadedOnce = false;
 
 async function load(){
   const first = !loadedOnce;
-  const [user, widget, past, stats] = await Promise.allSettled([
-    getJSON(URLS.user), getJSON(URLS.widget), getJSON(URLS.past(first ? 40 : 10)), getJSON(URLS.stats)]);
+  // Career stats take LFM 3-4 s to answer, so they don't hold up the first
+  // render: they fill in (and re-render) whenever they arrive.
+  getJSON(URLS.stats).then(v => {
+    S.stats = v;
+    if (loadedOnce && S.view) render(S);
+  }).catch(e => console.warn("LFM stats fetch failed", e));
+  const [user, widget, past] = await Promise.allSettled([
+    getJSON(URLS.user), getJSON(URLS.widget), getJSON(URLS.past(first ? 40 : 10))]);
   // On failure keep showing the last good data rather than blanking the overlay.
-  if (user.status === "fulfilled") S.user = user.value; else console.warn("LFM profile fetch failed", user.reason);
-  if (stats.status === "fulfilled") S.stats = stats.value;
+  if (user.status === "fulfilled"){ S.user = user.value; S.okAt = Date.now(); }
+  else console.warn("LFM profile fetch failed", user.reason);
   if (past.status === "fulfilled" && Array.isArray(past.value)) mergeHistory(past.value);
   // Next race: widget JSON, else the official card HTML through the proxy.
   let next, gotNext = widget.status === "fulfilled";
@@ -633,9 +903,22 @@ async function load(){
     try { next = parseCard(await getText(URLS.card)); gotNext = true; }
     catch (e){ console.warn("LFM card fetch failed", e); }
   }
-  // LFM may drop a race from the card once it starts; keep it while it runs.
+  // LFM drops a race from the widget the moment it starts. Keep it while it may
+  // still be running, also across reloads (OBS refreshing the source on a scene
+  // switch), so the race / race day frame doesn't fall back to the last result.
+  const NEXT_KEY = `lfm-next:${ID}`;
+  if (gotNext && next && !DEMO) store.set(NEXT_KEY, {...next, start: next.start.getTime()});
+  if (gotNext && !next && !(S.next && S.next.start <= Date.now()) && !DEMO){
+    const kept = store.get(NEXT_KEY), now = Date.now();
+    if (kept && kept.start <= now && now < kept.start + RACE_WINDOW_MS) next = {...kept, start: new Date(kept.start)};
+  }
   if (gotNext && (next || !(S.next && S.next.start <= Date.now()))) S.next = next;
 
+  // The next race's details and the last result's details load side by side.
+  const done = finals();
+  const last = done[0] && makeResult(done[0]);
+  const wantResult = last && (Date.now() - last.date < RESULT_MS || SHOW === "result");
+  const resultInfo = wantResult ? loadResultRace(last.raceId).catch(e => { console.warn("LFM result race fetch failed", e); return null; }) : null;
   if (nextActive()){
     const [race, cars] = await Promise.allSettled([getJSON(URLS.race(S.next.id)), loadCarNames()]);
     if (race.status === "fulfilled") S.race = parseRace(race.value, cars.status === "fulfilled" ? cars.value : null);
@@ -647,17 +930,14 @@ async function load(){
     S.race.sessionTimes = sessionTimes(S.next.start, S.race.sessions);
     if (S.race.track) S.race.record = trackRecord(S.race.track.name, S.race.sim);
   }
-  if (OPTS.broadcast && BROADCAST && S.race && SHOW !== "result"){
-    try { S.broadcast = await loadBroadcast(S.race, S.next.start); }
-    catch (e){ console.warn("LFM broadcast check failed", e); }
-  } else S.broadcast = null;
+  // Broadcast check (YouTube page + Twitch): after the first render, see below.
+  const checkBroadcast = OPTS.broadcast && BROADCAST && S.race && SHOW !== "result";
+  if (!checkBroadcast) S.broadcast = null;
 
-  const done = finals();
-  const last = done[0] && makeResult(done[0]);
-  S.result = last && (Date.now() - last.date < RESULT_MS || SHOW === "result") ? last : null;
+  S.result = wantResult ? last : null;
   if (S.result){
-    try { Object.assign(S.result, await loadResultRace(S.result.raceId)); }
-    catch (e){ console.warn("LFM result race fetch failed", e); }
+    const info = await resultInfo;
+    if (info) Object.assign(S.result, info);
   }
 
   S.mode = nextActive() && SHOW !== "result" ? (S.next.start <= Date.now() ? "live" : "next")
@@ -667,7 +947,7 @@ async function load(){
                .map(r => ({pos: r.finishing_pos || 0, raceId: r.race_id}));
   if (S.user){
     S.view = makeView(S.user, S.sim);
-    setAccent(ID === OWNER_ID ? null : LICENCE_ACCENTS[S.view.licenceKey]);
+    setAccent(HEXCODE || (ID === OWNER_ID ? null : LICENCE_ACCENTS[S.view.licenceKey]), !!HEXCODE);
     checkPromotion();
   }
 
@@ -675,12 +955,25 @@ async function load(){
   const r = currentRace();
   const liv = S.mode === "result" ? S.result && S.result.livery : r && r.livery;
   const car = S.mode === "result" ? S.result && S.result.car : r && r.car;
-  S.livery = liv ? {url: URLS.livery(liv), car: car || ""} : null;
+  // No custom livery: the car maker's logo instead.
+  const logo = S.mode === "result" ? S.result && S.result.carLogo : r && r.carLogo;
+  S.livery = liv ? {url: URLS.livery(liv), car: car || ""}
+           : logo ? {url: URLS.logo(logo), car: car || "", logo: true} : null;
 
+  await document.fonts.ready;  // text fitting needs the real font; it loaded alongside the data
   loadedOnce = true;
   if (S.view){ render(S); $("stage").classList.add("ready"); }
   queueCelebrations();
   if (first) loadFullHistory();
+  if (checkBroadcast){
+    const race = S.race;
+    loadBroadcast(race, S.next.start).then(b => {
+      if (S.race !== race) return;  // a newer load took over
+      const changed = JSON.stringify(b) !== JSON.stringify(S.broadcast);
+      S.broadcast = b;
+      if (changed && S.view) render(S);
+    }).catch(e => console.warn("LFM broadcast check failed", e));
+  }
 }
 
 // The whole race history (~1 MB for 900 races) is only needed to spot a new
@@ -698,7 +991,11 @@ async function loadFullHistory(){
 }
 
 /* ------------------------------------------------------------------ celebrations */
-const played = new Set();
+// Celebrations already shown. Kept over the reload after a code update (see below).
+const played = new Set((() => {
+  try { const v = JSON.parse(sessionStorage.getItem("lfm-played") || "[]"); sessionStorage.removeItem("lfm-played"); return v; }
+  catch { return []; }
+})());
 const queue = [];
 let playing = false;
 
@@ -708,27 +1005,27 @@ function celebrations(){
   if (r && Date.now() - r.date < CELEBRATE_MS){
     const key = k => `${r.raceId}:${k}`;
     if (r.finish === 1)
-      out.push({key: key("win"), big: "Victory", sub: [S.stats && S.stats.wins ? `Win #${S.stats.wins}` : "", r.track]});
+      out.push({key: key("win"), big: t("Victory"), sub: [S.stats && S.stats.wins ? t("Win #{n}", {n: S.stats.wins}) : "", r.track]});
     else if (r.finish > 1 && r.finish <= 3)
-      out.push({key: key("podium"), big: "Podium", sub: [`P${r.finish}`, r.track]});
+      out.push({key: key("podium"), big: t("Podium"), sub: [`P${r.finish}`, r.track]});
     if (S.fullHistory && r.elo > 0 && v.rating != null && r.sim === S.sim){
       const trail = ratingTrail(S.sim, v.rating);
       if (trail.length > 2 && v.rating > Math.max(...trail.slice(1)))
-        out.push({key: key("pb"), big: "New personal best", sub: [`${v.rating} rating`, signed(r.elo)]});
+        out.push({key: key("pb"), big: t("New personal best"), sub: [t("{n} rating", {n: v.rating}), signed(r.elo)]});
     }
     const starts = S.stats && S.stats.starts;
-    if (starts && starts % 100 === 0) out.push({key: key("starts"), big: `${starts} starts`, sub: ["on Low Fuel Motorsport"]});
+    if (starts && starts % 100 === 0) out.push({key: key("starts"), big: t("{n} starts", {n: starts}), sub: [t("on Low Fuel Motorsport")]});
   }
-  if (S.promo) out.push({key: `promo:${S.promo.licence}`, big: "Promoted", sub: ["Licence"], plate: S.promo.licence});
+  if (S.promo) out.push({key: `promo:${S.promo.licence}`, big: t("Promoted"), sub: [t("Licence")], plate: S.promo.licence});
 
   // ?celebrate=win,podium,pb,promo,starts shows examples with this driver's data.
   for (const k of CELEBRATE.split(",").filter(Boolean)){
     const demo = {
-      win: {big: "Victory", sub: ["Win #1", "Spa-Francorchamps"]},
-      podium: {big: "Podium", sub: ["P2", "Spa-Francorchamps"]},
-      pb: {big: "New personal best", sub: [`${v.rating ?? 2000} rating`, "+42"]},
-      promo: {big: "Promoted", sub: ["Licence"], plate: v.licence || "GOLD"},
-      starts: {big: "500 starts", sub: ["on Low Fuel Motorsport"]},
+      win: {big: t("Victory"), sub: [t("Win #{n}", {n: 1}), "Spa-Francorchamps"]},
+      podium: {big: t("Podium"), sub: ["P2", "Spa-Francorchamps"]},
+      pb: {big: t("New personal best"), sub: [t("{n} rating", {n: v.rating ?? 2000}), "+42"]},
+      promo: {big: t("Promoted"), sub: [t("Licence")], plate: v.licence || "GOLD"},
+      starts: {big: t("{n} starts", {n: 500}), sub: [t("on Low Fuel Motorsport")]},
     }[k];
     if (demo) out.push({...demo, key: `demo:${k}`});
   }
@@ -736,6 +1033,7 @@ function celebrations(){
 }
 
 function queueCelebrations(){
+  if (OPTS.celebrations === false) return;
   for (const c of celebrations()) if (!played.has(c.key)){ played.add(c.key); queue.push(c); }
   if (!playing) playNext();
 }
@@ -744,6 +1042,8 @@ function playNext(){
   const c = queue.shift();
   if (!c){ playing = false; return; }
   playing = true;
+  // opts.hold(): the layout isn't showing its full scene right now (race day frame); wait.
+  if (OPTS.hold && OPTS.hold()){ queue.unshift(c); setTimeout(playNext, 2000); return; }
   const host = document.querySelector("[data-celebrate]") || $("stage");
   const dur = 5600;
   const el = document.createElement("div");
@@ -794,6 +1094,7 @@ function coin(el){
       if (view.avatar && front.getAttribute("src") !== view.avatar) front.src = view.avatar;
       const url = livery && livery.url;
       if (cap) cap.textContent = livery ? livery.car : "";
+      el.classList.toggle("brand", !!(livery && livery.logo));
       if (!url){ ready = false; el.classList.remove("flipped"); return; }
       if (back.getAttribute("src") === url) return;
       ready = false;
@@ -822,6 +1123,15 @@ function renderRivals(box, list){
   }
 }
 
+// Scroll a field ticker back and forth when it doesn't fit its box.
+function scrollTrack(track, pxS = 60){
+  const dist = Math.max(0, track.scrollWidth - track.parentElement.clientWidth);
+  track.getAnimations().forEach(a => a.cancel());
+  if (!dist || !MOTION) return;
+  track.animate([{transform:"translateX(0)"}, {transform:`translateX(${-dist}px)`}],
+    {duration: dist / pxS * 1000, easing: "ease-in-out", iterations: Infinity, direction: "alternate", delay: 1500});
+}
+
 function renderForm(box, form){
   box.replaceChildren();
   for (const f of form){
@@ -838,20 +1148,28 @@ function renderForm(box, form){
 // Rotating pages: each `.page` in `pages` shows for pageMs (longer if it holds
 // a scrolling field ticker), then slides up to the next. Pages with
 // data-empty="1" are skipped. ?page=<title> pins one page.
-function rotator({pages, title, bar, pageMs = 8000, scrollPxS = 90, hold = 1500}){
+// isStatic(): when true all pages are on screen at once (laid out by the page's
+// CSS), so nothing scrolls; the rotation keeps running underneath.
+function rotator({pages, title, bar, pageMs = 8000, scrollPxS = 90, hold = 1500, isStatic = () => false}){
   const PIN = (PARAMS.get("page") || "").toLowerCase();
   let timer = 0;
   const setTitle = page => {
     if (!title) return;
-    title.textContent = page.dataset.title;
+    title.textContent = page.dataset.label || page.dataset.title;
     if (page.dataset.value){
       const em = document.createElement("em"); em.textContent = page.dataset.value; title.append(em);
     }
+    // Long (translated) titles shrink to fit the title column.
+    title.style.fontSize = title.style.letterSpacing = "";
+    const box = title.parentElement.clientWidth;
+    let size = parseFloat(getComputedStyle(title).fontSize);
+    if (title.scrollWidth > box) title.style.letterSpacing = ".1em";
+    while (title.scrollWidth > box && size > 10){ size -= 1; title.style.fontSize = size + "px"; }
   };
   const scroll = track => {
     const dist = Math.max(0, track.scrollWidth - track.parentElement.clientWidth);
     track.getAnimations().forEach(a => a.cancel());
-    if (!dist || !MOTION) return pageMs;
+    if (!dist || !MOTION || isStatic()) return pageMs;
     const ms = dist / scrollPxS * 1000 + 2 * hold, h = hold / ms;
     track.animate([
       {transform: "translateX(0)"}, {transform: "translateX(0)", offset: h},
@@ -894,16 +1212,72 @@ function rotator({pages, title, bar, pageMs = 8000, scrollPxS = 90, hold = 1500}
   };
 }
 
+/* ------------------------------------------------------------------ data age
+   If LFM can't be reached for a while the overlay keeps the last data; a small
+   tag says how old it is so the streamer notices. */
+const STALE_MS = 10 * 60e3;
+function watchAge(){
+  const tag = document.createElement("div");
+  tag.className = "stale"; tag.hidden = true;
+  $("stage").append(tag);
+  setInterval(() => {
+    const age = S.okAt ? Date.now() - S.okAt : 0;
+    tag.hidden = age < STALE_MS;
+    if (!tag.hidden) tag.textContent = t("LFM data {n} min old", {n: Math.round(age / 60e3)});
+  }, 30e3);
+}
+
+/* ------------------------------------------------------------------ updates
+   OBS keeps browser sources open for days. Every few minutes the overlay checks
+   whether its files changed on the server (ETag / Last-Modified) and, when they
+   did, reloads itself at a quiet moment: no race within 15 minutes, no frame,
+   no celebration playing. */
+const UPDATE_CHECK_MS = 5 * 60e3;
+const WATCHED = [location.pathname + location.search, "/lfm-card/lfm.js", "/lfm-card/lfm.css"].concat(DEMO ? ["/lfm-card/demo.js"] : []);
+async function fileVersions(){
+  const tags = await Promise.all(WATCHED.map(u => fetch(u, {method: "HEAD", cache: "no-store"})
+    .then(r => r.ok ? r.headers.get("etag") || r.headers.get("last-modified") || "" : "").catch(() => "")));
+  return tags.every(Boolean) ? tags.join("|") : null;
+}
+function quietMoment(){
+  if (playing || (OPTS.hold && OPTS.hold())) return false;
+  if (S.mode === "live") return false;
+  return !(S.mode === "next" && S.next.start - Date.now() < 15 * 60e3);
+}
+async function watchUpdates(){
+  let base = await fileVersions(), pending = false;
+  setInterval(async () => {
+    if (!pending){
+      const now = await fileVersions();
+      if (!base) base = now;
+      else if (now && now !== base) pending = true;
+    }
+    if (pending && quietMoment()){
+      try { sessionStorage.setItem("lfm-played", JSON.stringify([...played])); } catch {}
+      location.reload();
+    }
+  }, UPDATE_CHECK_MS);
+}
+
 /* ------------------------------------------------------------------ public */
 window.LFM = {
-  S, PARAMS, ID, SIMS, MOTION, URLS, WX_ICONS, SESSION_NAMES, LFM_YOUTUBE,
+  S, PARAMS, ID, SIMS, MOTION, URLS, WX_ICONS, SESSION_NAMES, LFM_YOUTUBE, STAGE, HIDE, DEMO, hidden, t,
   $, flagUrl, pad, countdown, ago, signed, deltaClass, fitStage, fitText, tighten, overflows,
-  paintLicence, paintSR, coin, rotator, renderRivals, renderForm, currentRace, nextActive,
+  paintLicence, paintSR, coin, rotator, renderRivals, renderForm, scrollTrack, currentRace, nextActive,
   // opts.broadcast: also look up LFM's official stream of the next race.
+  // opts.hold: () => true while celebrations should wait.
+  // opts.celebrations: false = never play any.
   start(fn, opts = {}){
     render = fn; OPTS = opts;
-    document.fonts.ready.then(load);
-    setInterval(load, REFRESH_MS);
+    if (HEXCODE) setAccent(HEXCODE, true);  // no flash of the default colour
+    translatePage();
+    watchAge();
+    watchUpdates();
+    const go = () => { load(); setInterval(load, DEMO ? 10e3 : REFRESH_MS); };
+    if (!DEMO) return go();
+    const js = document.createElement("script");
+    js.src = "/lfm-card/demo.js"; js.onload = js.onerror = go;
+    document.head.append(js);
   },
 };
 })();

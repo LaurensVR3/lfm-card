@@ -66,6 +66,18 @@
 .cel .celebrate .wash{display:none}
 .cel .celebrate .band{top:0;margin-top:0;height:100%;left:-4%;right:-4%}
 .cel{--cb-skew:0deg;--cb-big:58px;--cb-sub:16px;--cgap:6px}
+
+/* Wide (21:9 and up): the panel stretches and an extra block shows the field
+   around you (race) or your recent form (otherwise). */
+.extra,.div.x{display:none}
+html.wide .div.x{display:block}
+html.wide .extra{display:flex;flex:1.25;min-width:0;align-self:stretch;flex-direction:column;justify-content:center;gap:12px}
+html.wide .extra .lbl{font-size:14px;font-weight:700;font-style:italic;letter-spacing:.26em;text-transform:uppercase;color:var(--volt);white-space:nowrap}
+html.wide .extra .lbl em{color:var(--ink-faint);font-style:italic;margin-left:.6em;font-weight:500}
+html.wide .extra .field{flex:none;height:40px}
+html.wide .extra .form b{min-width:50px;height:32px;font-size:16px}
+html.wide .extra .form{overflow:hidden;min-width:0}
+html.ultra .extra{flex:2}
 </style>
 </head>
 <body>
@@ -132,6 +144,12 @@
       </div>
       <div class="bar"><b id="bar"></b></div>
     </div>
+    <div class="div x" id="extraDiv"></div>
+    <div class="extra" id="extra">
+      <div class="lbl" id="extraLbl"></div>
+      <div class="field" id="extraField"><div class="ftrack" id="field"></div></div>
+      <div class="form" id="extraForm"></div>
+    </div>
   </div>
   <div class="cel" data-celebrate></div>
 </div>
@@ -163,12 +181,12 @@ function renderClock(){
   if (S.mode !== "next" && S.mode !== "live") return;
   const n = S.next, diff = n.start - Date.now();
   $("nextLbl").innerHTML = "";
-  $("nextLbl").append(diff > 0 ? "Next race" : "Racing now");
+  $("nextLbl").append(LFM.t(diff > 0 ? "Next race" : "Racing now"));
   const em = document.createElement("em");
   em.textContent = n.start.toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"});
   $("nextLbl").append(em);
-  if (diff > 0) $("nextClock").textContent = `in ${LFM.countdown(diff)}`;
-  else { $("nextClock").innerHTML = '<span class="live-dot"></span>'; $("nextClock").append("Live"); }
+  if (diff > 0) $("nextClock").textContent = LFM.t("in {t}", {t: LFM.countdown(diff)});
+  else { $("nextClock").innerHTML = '<span class="live-dot"></span>'; $("nextClock").append(LFM.t("Live")); }
 }
 
 function renderPages(){
@@ -187,14 +205,14 @@ function renderPages(){
       $("trackKm").textContent = r.track.km ? `${(r.track.km / 1000).toFixed(1)} km` : "";
       $("trackFlag").hidden = !r.track.country;
       if (r.track.country) $("trackFlag").src = LFM.flagUrl(r.track.country);
-      $("trackCar").textContent = [r.car, r.weather && r.weather.label, r.raceMinutes && `${r.raceMinutes} min race`].filter(Boolean).join(" · ");
+      $("trackCar").textContent = [r.car, r.weather && r.weather.label, r.raceMinutes && LFM.t("{n} min race", {n: r.raceMinutes})].filter(Boolean).join(" · ");
       LFM.fitText($("trackName"), 360, 40, 24);
     }
     if (r && r.door){
       on("pGrid");
       $("gridDoor").textContent = `#${r.door}`;
       $("gridSeed").textContent = r.seed ? `P${r.seed}` : "";
-      $("gridOf").textContent = r.seed ? `Seed of ${r.classSize} ${r.carClass || ""} · ${r.drivers} drivers` : "";
+      $("gridOf").textContent = r.seed ? `${LFM.t("Seed of {n}", {n: r.classSize})} ${r.carClass || ""} · ${LFM.t("{n} drivers", {n: r.drivers})}` : "";
       $("gridSof").textContent = r.sof ? `SOF ${r.sof}` : "";
     }
   } else if (S.mode === "result"){
@@ -208,11 +226,36 @@ function renderPages(){
     $("resElo").textContent = res.elo != null ? `${LFM.signed(res.elo)} elo` : "";
     $("resTrack").textContent = [res.track, res.series].filter(Boolean).join(" · ");
     on("pDetails");
-    $("detBig").textContent = [res.start && `Start P${res.start}`, res.incidents != null && `${res.incidents} IP`].filter(Boolean).join("  ·  ");
-    $("detSmall").textContent = [res.bestLap && `Best lap ${res.bestLap}`, res.sr != null && `SR ${LFM.signed(res.sr, 2)}`, res.car].filter(Boolean).join(" · ");
+    $("detBig").textContent = [res.start && `${LFM.t("Start")} P${res.start}`, res.incidents != null && `${res.incidents} IP`].filter(Boolean).join("  ·  ");
+    $("detSmall").textContent = [res.bestLap && `${LFM.t("Best lap")} ${res.bestLap}`, res.sr != null && `SR ${LFM.signed(res.sr, 2)}`, res.car].filter(Boolean).join(" · ");
   } else on("pIdle");
 
-  if (S.mode !== "next" && S.mode !== "live" && S.form.length > 1){
+  // Wide: the extra block shows the field (race) or the form (otherwise).
+  const race = S.mode === "next" || S.mode === "live";
+  const field = r ? r.field : [];
+  const showField = LFM.STAGE.wide && race && field.length > 1 && !LFM.hidden("field");
+  const showForm = LFM.STAGE.wide && !race && S.form.length > 1 && !LFM.hidden("form");
+  $("extra").hidden = $("extraDiv").hidden = !showField && !showForm;
+  $("extraField").hidden = !showField; $("extraForm").hidden = !showForm;
+  $("extraLbl").replaceChildren(LFM.t(showField ? "Field" : "Form"));
+  if (showField){
+    if (r.sof){ const em = document.createElement("em"); em.textContent = `SOF ${r.sof}`; $("extraLbl").append(em); }
+    const key = field.map(f => f.door).join() + LFM.STAGE.w;
+    if ($("field").dataset.key !== key){
+      $("field").dataset.key = key; LFM.renderRivals($("field"), field);
+      requestAnimationFrame(() => LFM.scrollTrack($("field")));
+    }
+  }
+  if (showForm){
+    // Drop the oldest finishes until the row fits.
+    const box = $("extraForm");
+    LFM.renderForm(box, S.form);
+    const chips = () => box.querySelectorAll("b");
+    if (LFM.overflows(box)) box.querySelector(".latest").remove();
+    while (LFM.overflows(box) && chips().length > 3) chips()[0].remove();
+  }
+
+  if (!race && S.form.length > 1 && !showForm && !LFM.hidden("form")){
     on("pForm"); LFM.renderForm($("form"), S.form);
   }
   rot.refresh();

@@ -72,6 +72,20 @@ h3{font:italic 600 21px/1.2 var(--sans);letter-spacing:-.01em}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .check{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--ink-soft);cursor:pointer}
 .check input{accent-color:var(--volt);width:16px;height:16px}
+.seg.two{grid-template-columns:repeat(2,1fr)}
+.seg.four{grid-template-columns:repeat(4,1fr)}
+.seg.five{grid-template-columns:repeat(5,1fr)}
+.seg.three{grid-template-columns:repeat(3,1fr)}
+.colour{display:flex;gap:10px;align-items:center}
+.colour input[type=color]{flex:none;width:44px;height:40px;padding:3px;border:1px solid var(--rule-strong);border-radius:6px;background:var(--graphite);cursor:pointer}
+.colour input[type=color]:disabled{opacity:.35;cursor:default}
+.warn[hidden]{display:none}
+.warn{margin-top:8px;display:flex;align-items:center;gap:10px;font-size:12.5px;line-height:1.45;color:#ffb4b4}
+.warn button{flex:none;font:600 11px/1 var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--ink);background:transparent;
+  border:1px solid var(--rule-strong);border-radius:5px;padding:7px 9px;cursor:pointer}
+.warn button:hover{border-color:var(--volt);color:var(--volt)}
+.checks{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px}
+.checks .check{font-size:13.5px}
 
 .output{display:grid;gap:14px;min-width:0}
 .urlbox{display:flex;gap:8px;align-items:stretch}
@@ -82,8 +96,7 @@ h3{font:italic 600 21px/1.2 var(--sans);letter-spacing:-.01em}
 .btn--primary:hover{background:var(--mist);border-color:var(--mist);color:var(--graphite)}
 .preview{position:relative;border:1px solid var(--rule);border-radius:var(--radius);overflow:hidden;
   background:repeating-conic-gradient(#26262a 0 25%,#2c2c30 0 50%) 0 0/24px 24px}
-.preview iframe{display:block;width:100%;aspect-ratio:16/9;border:0}
-.preview.lt iframe{aspect-ratio:8/1}
+.preview iframe{display:block;width:100%;aspect-ratio:var(--ar,16/9);border:0}
 .preview-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 .preview-bar .label{margin-right:auto}
 .size{font-size:13px;color:var(--ink-soft)}
@@ -153,7 +166,7 @@ details p{padding:0 0 18px;color:var(--ink-soft)}
   <section class="hero">
     <p class="eyebrow">OBS overlay · Low Fuel Motorsport</p>
     <h1>LFM Card</h1>
-    <p class="lede">A live driver card for your stream. It shows your LFM rating, licence and safety rating, counts down to your next race, shows your result afterwards and celebrates wins, podiums and promotions. It's free, needs no install or account, and updates itself every two minutes.</p>
+    <p class="lede">A live driver card for your stream. It shows your LFM rating, licence and safety rating, counts down to your next race, shows your result afterwards and celebrates wins, podiums and promotions. It's free, needs no install or account, and refreshes its LFM data every two minutes.</p>
   </section>
 
   <!-- ------------------------------------------------------------ builder -->
@@ -171,11 +184,41 @@ details p{padding:0 0 18px;color:var(--ink-soft)}
         </div>
         <div class="field">
           <span class="label">Layout</span>
-          <div class="seg" id="layout" role="group" aria-label="Layout">
+          <div class="seg five" id="layout" role="group" aria-label="Layout">
             <button type="button" data-v="" aria-pressed="true">Card</button>
             <button type="button" data-v="lower-third" aria-pressed="false">Lower third</button>
             <button type="button" data-v="starting-soon" aria-pressed="false">Starting soon</button>
+            <button type="button" data-v="race-day" aria-pressed="false">Race day</button>
+            <button type="button" data-v="mini" aria-pressed="false">Mini</button>
           </div>
+        </div>
+        <div class="field">
+          <span class="label">Stream aspect ratio</span>
+          <div class="seg" id="aspect" role="group" aria-label="Aspect ratio">
+            <button type="button" data-v="" aria-pressed="true">16:9</button>
+            <button type="button" data-v="21:9" aria-pressed="false">21:9</button>
+            <button type="button" data-v="32:9" aria-pressed="false">32:9</button>
+          </div>
+        </div>
+        <div class="field">
+          <span class="label">Stream resolution</span>
+          <div class="seg three" id="res" role="group" aria-label="Resolution">
+            <button type="button" data-v="720" aria-pressed="false">720p</button>
+            <button type="button" data-v="1080" aria-pressed="true">1080p</button>
+            <button type="button" data-v="1440" aria-pressed="false">1440p</button>
+          </div>
+          <div class="hint">Only changes the OBS source size below; the overlay stays sharp at any size.</div>
+        </div>
+        <div class="field">
+          <label class="label" for="hex">Accent colour</label>
+          <div class="colour">
+            <select id="accent">
+              <option value="">Licence colour</option>
+              <option value="custom">Custom</option>
+            </select>
+            <input type="color" id="hex" value="#ff0033" disabled aria-label="Custom accent colour">
+          </div>
+          <div class="warn" id="hexWarn" hidden><span>Hard to read on the dark card.</span><button type="button" id="hexFix">Lighten it</button></div>
         </div>
         <div class="row2">
           <div class="field">
@@ -211,6 +254,42 @@ details p{padding:0 0 18px;color:var(--ink-soft)}
             <option value="form">Form only</option>
           </select>
         </div>
+        <div class="row2">
+          <div class="field">
+            <label class="label" for="lang">Language</label>
+            <select id="lang">
+              <option value="">English</option>
+              <option value="de">Deutsch</option>
+              <option value="es">Español</option>
+              <option value="fr">Français</option>
+              <option value="it">Italiano</option>
+              <option value="nl">Nederlands</option>
+              <option value="pt">Português</option>
+            </select>
+          </div>
+          <div class="field" id="frameField" hidden>
+            <label class="label" for="frameBars">Race frame</label>
+            <select id="frameBars">
+              <option value="">Top and bottom</option>
+              <option value="top">Top only</option>
+              <option value="bottom">Bottom only</option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <span class="label">Show</span>
+          <div class="checks" id="shows">
+            <label class="check"><input type="checkbox" data-hide="logo" checked> Team logo</label>
+            <label class="check"><input type="checkbox" data-hide="field" checked> Field</label>
+            <label class="check"><input type="checkbox" data-hide="form" checked> Form</label>
+            <label class="check"><input type="checkbox" data-hide="career" checked> Career stats</label>
+            <label class="check"><input type="checkbox" data-hide="entrylist" checked> Entry list</label>
+            <label class="check"><input type="checkbox" data-hide="results" checked> Results table</label>
+            <label class="check"><input type="checkbox" data-hide="broadcast" checked> LFM broadcast</label>
+            <label class="check"><input type="checkbox" data-hide="corners" checked> Frame corners</label>
+          </div>
+        </div>
+        <label class="check"><input type="checkbox" id="bg" checked> Background</label>
         <label class="check"><input type="checkbox" id="celebrate" checked> Celebrations</label>
         <label class="check"><input type="checkbox" id="motion" checked> Ambient animation</label>
       </form>
@@ -224,8 +303,10 @@ details p{padding:0 0 18px;color:var(--ink-soft)}
         <p class="size" id="size"></p>
         <div class="preview-bar">
           <span class="label">Live preview</span>
+          <button class="btn" type="button" id="prevFrame" hidden>Show race frame</button>
           <button class="btn" type="button" id="prevResult">Show result mode</button>
           <button class="btn" type="button" id="prevCelebrate">Test a celebration</button>
+          <button class="btn" type="button" id="prevDemo">Demo race</button>
         </div>
         <div class="preview" id="preview"><iframe id="frame" title="LFM Card preview" loading="lazy"></iframe></div>
       </div>
@@ -238,17 +319,34 @@ details p{padding:0 0 18px;color:var(--ink-soft)}
     <h2>Add it to OBS</h2>
     <ol class="steps">
       <li>In the scene you want, click <strong>+</strong> under <strong>Sources</strong> and choose <strong>Browser</strong>.</li>
-      <li>Paste your URL and set <strong>Width</strong> and <strong>Height</strong> to the size for your layout (see the table below). Leave the default Custom CSS as it is; the background is already transparent.</li>
+      <li>Paste your URL and set <strong>Width</strong> and <strong>Height</strong> to the size for your layout and stream (see the table below). Leave the default Custom CSS as it is; the background is already transparent.</li>
       <li>Tick <strong>Refresh browser when scene becomes active</strong>. Every time you switch to the scene the card fades in again and replays any celebration for your last race.</li>
-      <li>Position and scale the source like any other. The overlay is built on a fixed canvas, so it stays sharp at any size with the same aspect ratio.</li>
+      <li>Position and scale the source like any other. The overlay is drawn at the source size, so it stays sharp at 1080p, 1440p or 4K. A wider source (21:9, 32:9) gets a wider layout with more on screen.</li>
     </ol>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Layout</th><th>Source size</th><th>Use it for</th></tr></thead>
+        <thead><tr><th>Layout</th><th>Use it for</th></tr></thead>
         <tbody>
-          <tr><td>Card</td><td><code>1600 × 900</code> (or 1920 × 1080)</td><td>Intermission, intro or "just chatting" scenes. The full profile with a rotating details row.</td></tr>
-          <tr><td>Lower third</td><td><code>1600 × 200</code></td><td>Stays on screen while racing. A slim bar with avatar, rating, plates and a rotating info panel.</td></tr>
-          <tr><td>Starting soon</td><td><code>1920 × 1080</code></td><td>Full-screen pre-race scene: countdown, session times, track and your record there, your livery, car / door / seed / SOF / weather, the full entry list, career stats, form and the official LFM broadcast. After the race it turns into a result screen.</td></tr>
+          <tr><td>Card</td><td>Intermission, intro or "just chatting" scenes. The full profile with a rotating details row. At 21:9 the stats bar adds your wins; at 32:9 a side panel shows every detail at once (race, conditions, field, result, form, career).</td></tr>
+          <tr><td>Lower third</td><td>Stays on screen while racing. A slim bar with avatar, rating, plates and a rotating info panel. From 21:9 it adds the drivers around you (before a race) or your form.</td></tr>
+          <tr><td>Race day</td><td>One full-screen source for the whole race: the starting soon scene until one minute before the server opens, then a <strong>frame</strong> along the top and bottom of the screen with the game showing through the middle, then the full-screen result with celebrations once LFM publishes your result. Put it on top of your game capture.</td></tr>
+          <tr><td>Starting soon</td><td>Full-screen pre-race scene: countdown, session times, track and your record there, your livery, car / door / seed / SOF / weather, the full entry list, career stats, form and the official LFM broadcast. After the race it turns into a result screen. Wider screens get a bigger livery and a longer entry list.</td></tr>
+          <tr><td>Mini</td><td>For low-resolution streams, where readability matters most: one small card with your flag, name, Elo, licence, safety rating and sim. Big plain text on a solid background, nothing moving and no celebrations. Same size at every aspect ratio (<code>800 × 160</code> at 1080p, <code>533 × 107</code> at 720p, or any 5:1 size).</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3 style="margin-top:36px">Source sizes</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Stream</th><th>Card / Starting soon / Race day</th><th>Lower third</th><th>Mini</th></tr></thead>
+        <tbody>
+          <tr><td>16:9 · 720p</td><td><code>1280 × 720</code></td><td><code>1067 × 133</code></td><td><code>533 × 107</code></td></tr>
+          <tr><td>16:9 · 1080p</td><td><code>1920 × 1080</code></td><td><code>1600 × 200</code></td><td><code>800 × 160</code></td></tr>
+          <tr><td>16:9 · 1440p</td><td><code>2560 × 1440</code></td><td><code>2133 × 267</code></td><td><code>1067 × 213</code></td></tr>
+          <tr><td>21:9 · 1080p</td><td><code>2560 × 1080</code></td><td><code>2100 × 200</code></td><td><code>800 × 160</code></td></tr>
+          <tr><td>21:9 · 1440p</td><td><code>3440 × 1440</code></td><td><code>2800 × 267</code></td><td><code>1067 × 213</code></td></tr>
+          <tr><td>32:9 · 1080p</td><td><code>3840 × 1080</code></td><td><code>3200 × 200</code></td><td><code>800 × 160</code></td></tr>
+          <tr><td>32:9 · 1440p</td><td><code>5120 × 1440</code></td><td><code>4267 × 267</code></td><td><code>1067 × 213</code></td></tr>
         </tbody>
       </table>
     </div>
@@ -274,12 +372,24 @@ details p{padding:0 0 18px;color:var(--ink-soft)}
         <p>From lights out the countdown becomes a pulsing <strong>LIVE</strong> tag. It stays that way until LFM publishes your result, for up to three hours.</p>
       </article>
       <article class="card">
+        <h3>Race day frame</h3>
+        <p>With the <strong>Race day</strong> layout the scene steps aside a minute before the server opens. A slim frame shows the <strong>session</strong> (practice, qualifying, race) with the <strong>time left</strong> and a progress bar, series, track, weather and SOF on top, and you, your door number, plates, car and the field along the bottom. When the result is in, the full scene comes back with the celebrations.</p>
+      </article>
+      <article class="card">
         <h3>Result</h3>
         <p>After the race: start and finish position with places gained, <strong>rating change</strong>, SR change, incidents and your <strong>best lap</strong>, plus a <strong>form guide</strong> of your last 10 finishes. Shown for up to 7 days, or until your next race is coming up.</p>
       </article>
       <article class="card">
         <h3>Livery flip</h3>
-        <p>Every 30 seconds your profile picture flips like a coin to show <strong>your car in your livery</strong>, with the car name. This uses the livery screenshot from LFM, so it works when you race with a custom livery uploaded to LFM.</p>
+        <p>Every 30 seconds your profile picture flips like a coin to show <strong>your car in your livery</strong>, with the car name. This uses the livery screenshot from LFM, so it works when you race with a custom livery uploaded to LFM. Without one, it flips to the <strong>car maker's logo</strong>.</p>
+      </article>
+      <article class="card">
+        <h3>Results table</h3>
+        <p>On the starting soon and race day result screen: the <strong>finishing order of your class</strong> in your split, with gaps and everyone's rating change. Your row is highlighted.</p>
+      </article>
+      <article class="card">
+        <h3>Demo race</h3>
+        <p>Add <code>?demo=1</code> (or click <strong>Demo race</strong> above) for a made-up race that starts a minute after loading, with your real profile: countdown, practice, qualifying, a 2-minute race, then a win with results and celebration, about five and a half minutes in all. Handy for setting up your OBS scenes on any day.</p>
       </article>
       <article class="card">
         <h3>Celebrations</h3>
@@ -287,7 +397,7 @@ details p{padding:0 0 18px;color:var(--ink-soft)}
       </article>
       <article class="card">
         <h3>Your colours</h3>
-        <p>The accent colour follows your licence: gold for Gold, purple for Legend, and so on. Lavaro Racing drivers get the Lavaro logo, and other drivers get their own team logo.</p>
+        <p>The accent colour follows your licence: gold for Gold, purple for Legend, and so on. Prefer your own colour? Pick <strong>Custom</strong> in the builder or add <code>&amp;HEXCODE=FF0033</code> to your URL. Lavaro Racing drivers get the Lavaro logo, and other drivers get their own team logo.</p>
       </article>
     </div>
 
@@ -319,14 +429,21 @@ details p{padding:0 0 18px;color:var(--ink-soft)}
       <table>
         <thead><tr><th>Option</th><th>Values</th><th>What it does</th></tr></thead>
         <tbody>
-          <tr><td><code>layout</code></td><td><code>lower-third</code>, <code>starting-soon</code></td><td>Picks the layout. Leave it out for the full card.</td></tr>
+          <tr><td><code>layout</code></td><td><code>lower-third</code>, <code>starting-soon</code>, <code>race-day</code>, <code>mini</code></td><td>Picks the layout. Leave it out for the full card.</td></tr>
+          <tr><td><code>aspect</code></td><td><code>21:9</code>, <code>32:9</code></td><td>Forces the overlay's shape. Usually not needed: without it the overlay follows the browser source size, from 16:9 up to 32:9.</td></tr>
+          <tr><td><code>HEXCODE</code></td><td>colour, e.g. <code>FF0033</code></td><td>Accent colour instead of your licence colour. Six (or three) hex digits, without the <code>#</code>. Used exactly as given, so very dark colours are hard to read.</td></tr>
+          <tr><td><code>demo</code></td><td><code>1</code></td><td>A made-up race starting a minute after the page loads, with your real profile. Reload to start again. Don't leave it on in your real scene.</td></tr>
+          <tr><td><code>lang</code></td><td><code>de</code> <code>es</code> <code>fr</code> <code>it</code> <code>nl</code> <code>pt</code></td><td>Language of the labels. Default English. Times use your PC's clock format.</td></tr>
+          <tr><td><code>hide</code></td><td><code>logo</code> <code>banner</code> <code>field</code> <code>form</code> <code>career</code> <code>entrylist</code> <code>results</code> <code>broadcast</code> <code>corners</code></td><td>Switch parts off, several separated by commas, e.g. <code>hide=field,career</code>.</td></tr>
+          <tr><td><code>frame</code></td><td><code>top</code>, <code>bottom</code></td><td>Race day only: show just one bar of the race frame, e.g. when the other covers your sim's HUD.</td></tr>
+          <tr><td><code>bg</code></td><td><code>off</code></td><td>Card, starting soon and race day: no background, so the overlay sits on your own scene or video.</td></tr>
           <tr><td><code>sim</code></td><td><code>acc</code> <code>ac</code> <code>ace</code> <code>lmu</code> <code>ams2</code> <code>rr</code></td><td>Always show this sim, and only its races. Default: automatic.</td></tr>
           <tr><td><code>flip</code></td><td>seconds, <code>0</code> = off</td><td>How often the avatar flips to your livery. Default <code>30</code>.</td></tr>
           <tr><td><code>page</code></td><td><code>race</code> <code>conditions</code> <code>sof</code> <code>last race</code> <code>result</code> <code>form</code></td><td>Card only: keep the details row on one page instead of rotating. If that page has no data, it rotates as normal.</td></tr>
           <tr><td><code>celebrate</code></td><td><code>off</code>, or <code>win</code> <code>podium</code> <code>pb</code> <code>promo</code> <code>starts</code></td><td><code>off</code> turns celebrations off. The names play an example once, for testing.</td></tr>
           <tr><td><code>motion</code></td><td><code>off</code></td><td>Stops the ambient animation (light sweeps, glints, drifting banner) and the livery flip. Useful on low-end PCs.</td></tr>
-          <tr><td><code>show</code></td><td><code>result</code></td><td>Preview result mode even when a race is coming up.</td></tr>
-          <tr><td><code>broadcast</code></td><td><code>off</code></td><td>Starting soon only: don't look up or show the official LFM broadcast.</td></tr>
+          <tr><td><code>show</code></td><td><code>result</code>, <code>live</code></td><td><code>result</code> previews result mode even when a race is coming up. <code>live</code> previews the race day frame (needs a race you're signed up for).</td></tr>
+          <tr><td><code>broadcast</code></td><td><code>off</code></td><td>Starting soon and race day: don't look up or show the official LFM broadcast.</td></tr>
         </tbody>
       </table>
     </div>
@@ -337,13 +454,15 @@ details p{padding:0 0 18px;color:var(--ink-soft)}
     <p class="eyebrow">Help</p>
     <h2>FAQ</h2>
     <details><summary>My next race doesn't show up</summary><p>The card only knows about races you're signed up for on LFM. Once you register, it appears within two minutes.</p></details>
-    <details><summary>The livery flip doesn't happen</summary><p>The car picture comes from LFM's livery screenshots, so it only exists when you race with a custom livery uploaded through LFM. With a default skin the card keeps showing your profile picture. The livery is taken from your next race, or your last race when there's no next race.</p></details>
+    <details><summary>The livery flip doesn't happen</summary><p>The car picture comes from LFM's livery screenshots, so it only exists when you race with a custom livery uploaded through LFM. With a default skin it flips to the car maker's logo instead. The livery is taken from your next race, or your last race when there's no next race.</p></details>
     <details><summary>How fresh is the data?</summary><p>Everything reloads every two minutes, the same as the official LFM card. Rating, licence and results update as soon as LFM publishes them, usually a few minutes after the race.</p></details>
     <details><summary>Is the card blank or stuck?</summary><p>Check that the URL contains your numeric driver ID. If LFM is briefly unreachable the card keeps showing the last data it had and catches up on the next refresh. Right-click the source in OBS and choose <strong>Refresh</strong> to force a reload.</p></details>
-    <details><summary>The details row stopped rotating, or something looks off after an update</summary><p>Your browser or OBS may still be running an older copy of the overlay code. In OBS open the browser source's properties and click <strong>Refresh cache of current page</strong>; in a browser press <strong>Ctrl+F5</strong>.</p></details>
+    <details><summary>Do I need to refresh after an update?</summary><p>No. The overlay checks for new versions every few minutes and reloads itself at a quiet moment: not during a race, not in the 15 minutes before one and not mid-celebration. If something still looks off, open the browser source's properties in OBS and click <strong>Refresh cache of current page</strong>.</p></details>
+    <details><summary>What does "LFM data 12 min old" mean?</summary><p>LFM couldn't be reached for a while, so the overlay is showing the last data it had. The tag disappears on its own once LFM answers again.</p></details>
     <details><summary>What does the form row show?</summary><p>Your last finishes in the sim on screen, oldest on the left, latest on the right, from your LFM race history. Volt = win, volt outline = podium, light grey = top 10, dark grey = the rest. <strong>DNF</strong> means LFM has no finishing position for you in that race: a retirement, but also a race you qualified for and didn't start or left early.</p></details>
-    <details><summary>Why doesn't the broadcast badge show?</summary><p>It only appears on the starting soon scene when LFM is streaming your race. YouTube streams count when the title has your series and track and is scheduled for race day, e.g. <code>[ENG] Caseking.de Prime Series R05 Suzuka</code>. Twitch has no public schedule, so the official LFM Twitch channels only show once they're live. The YouTube schedule is checked every 10 minutes.</p></details>
+    <details><summary>Why doesn't the broadcast badge show?</summary><p>It only appears on the starting soon and race day scenes when LFM is streaming your race. YouTube streams count when the title has your series and track and is scheduled for race day, e.g. <code>[ENG] Caseking.de Prime Series R05 Suzuka</code>. Twitch has no public schedule, so the official LFM Twitch channels only show once they're live. The YouTube schedule is checked every 10 minutes.</p></details>
     <details><summary>Does it work for drivers outside Lavaro?</summary><p>Yes. Any LFM driver can use it. You get your own team logo and licence colours.</p></details>
+    <details><summary>The race day frame covers part of my sim's HUD</summary><p>Pick <strong>Top only</strong> or <strong>Bottom only</strong> under <strong>Race frame</strong> in the builder (<code>frame=top</code> / <code>frame=bottom</code>), and untick <strong>Frame corners</strong> if the corner marks are in the way.</p></details>
     <details><summary>Is this an official LFM product?</summary><p>No. It's an unofficial fan-made overlay by Lavaro that reads public data from Low Fuel Motorsport. All race data belongs to LFM.</p></details>
   </section>
 </main>
@@ -358,8 +477,23 @@ details p{padding:0 0 18px;color:var(--ink-soft)}
 <script>
 (() => {
   const $ = id => document.getElementById(id);
-  const SIZES = {"": [1600, 900], "lower-third": [1600, 200], "starting-soon": [1920, 1080]};
-  let layout = "";
+  // Canvas height per layout at 1080p; width follows the stream's aspect ratio.
+  const RATIOS = {"": 16 / 9, "21:9": 21 / 9, "32:9": 32 / 9};
+  const STREAM_W = {"": 1920, "21:9": 2560, "32:9": 3840};
+  let layout = "", aspect = "", res = 1080;
+  function sourceSize(){
+    if (layout === "mini"){
+      // Fixed 5:1 card, about 40% of the stream width at 16:9.
+      const k = res / 1080;
+      return [Math.round(800 * k), Math.round(160 * k)];
+    }
+    if (layout === "lower-third"){
+      const w = 1600 * RATIOS[aspect] / (16 / 9), k = res / 1080;
+      return [Math.round(w * k), Math.round(200 * k)];
+    }
+    const k = res / 1080;
+    return [Math.round(STREAM_W[aspect] * k), res];
+  }
   let extra = "";  // preview-only params (result mode / celebration test)
 
   // Remember the last ID typed (per browser only).
@@ -370,6 +504,13 @@ details p{padding:0 0 18px;color:var(--ink-soft)}
   function params(){
     const p = new URLSearchParams();
     if (layout) p.set("layout", layout);
+    if (aspect) p.set("aspect", aspect);
+    if ($("accent").value === "custom") p.set("HEXCODE", $("hex").value.slice(1).toUpperCase());
+    if ($("lang").value) p.set("lang", $("lang").value);
+    if (layout === "race-day" && $("frameBars").value) p.set("frame", $("frameBars").value);
+    const hide = [...$("shows").querySelectorAll("input")].filter(x => !x.checked).map(x => x.dataset.hide);
+    if (hide.length) p.set("hide", hide.join(","));
+    if (!$("bg").checked && layout !== "lower-third" && layout !== "mini") p.set("bg", "off");
     if ($("sim").value) p.set("sim", $("sim").value);
     if ($("flip").value) p.set("flip", $("flip").value);
     if (!layout && $("page").value) p.set("page", $("page").value);
@@ -377,6 +518,20 @@ details p{padding:0 0 18px;color:var(--ink-soft)}
     if (!$("motion").checked) p.set("motion", "off");
     return p;
   }
+
+  // Same check the overlay uses for licence colours: contrast against the card
+  // background of at least 3.2, else lighten towards white keeping the hue.
+  const lum = rgb => rgb.map(v => (v /= 255) <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4)
+    .reduce((n, c, i) => n + c * [0.2126, 0.7152, 0.0722][i], 0);
+  const BG = lum([20, 20, 22]);
+  function readable(hex){
+    const base = hex.match(/\w\w/g).map(h => parseInt(h, 16));
+    let rgb = base;
+    for (let t = 0; t <= 1 && (lum(rgb) + 0.05) / (BG + 0.05) < 3.2; t += 0.05)
+      rgb = base.map(v => Math.round(v + (255 - v) * t));
+    return "#" + rgb.map(v => v.toString(16).padStart(2, "0")).join("");
+  }
+  $("hexFix").addEventListener("click", () => { $("hex").value = readable($("hex").value); extra = ""; update(); });
 
   let frameTimer = 0;
   function update(){
@@ -387,10 +542,14 @@ details p{padding:0 0 18px;color:var(--ink-soft)}
     $("url").textContent = url || "—";
     $("open").href = url || "#";
     $("copy").disabled = !url;
-    const [w, h] = SIZES[layout];
+    const [w, h] = sourceSize();
     $("size").innerHTML = `OBS browser source size: <b>${w} × ${h}</b>`;
     $("pageField").hidden = !!layout;
-    $("preview").classList.toggle("lt", layout === "lower-third");
+    $("prevFrame").hidden = layout !== "race-day";
+    $("hex").disabled = $("accent").value !== "custom";
+    $("hexWarn").hidden = $("hex").disabled || readable($("hex").value) === $("hex").value;
+    $("frameField").hidden = layout !== "race-day";
+    $("preview").style.setProperty("--ar", `${w} / ${h}`);
     try { if (id) localStorage.setItem("lfm-card-id", id); } catch {}
     // Reload the preview shortly after typing stops.
     clearTimeout(frameTimer);
@@ -398,7 +557,7 @@ details p{padding:0 0 18px;color:var(--ink-soft)}
       if (!id) return;
       const p = params();
       new URLSearchParams(extra).forEach((v, k) => p.set(k, v));
-      const src = `/lfm-card/${id}?${p}`;
+      const src = `/lfm-card/${id}${p.toString() ? "?" + p : ""}`;
       if ($("frame").getAttribute("src") !== src) $("frame").src = src;
     }, 450);
   }
@@ -410,7 +569,16 @@ details p{padding:0 0 18px;color:var(--ink-soft)}
     for (const x of $("layout").children) x.setAttribute("aria-pressed", x === b);
     extra = ""; update();
   });
+  for (const [id, set] of [["aspect", v => aspect = v], ["res", v => res = Number(v)]])
+    $(id).addEventListener("click", e => {
+      const b = e.target.closest("button"); if (!b) return;
+      set(b.dataset.v);
+      for (const x of $(id).children) x.setAttribute("aria-pressed", x === b);
+      extra = ""; update();
+    });
   $("prevResult").addEventListener("click", () => { extra = "show=result&celebrate=off"; update(); });
+  $("prevFrame").addEventListener("click", () => { extra = "show=live&celebrate=off"; update(); });
+  $("prevDemo").addEventListener("click", () => { extra = `demo=1&t=${Date.now()}`; update(); });
   const demos = ["win", "podium", "pb", "promo", "starts"];
   let demo = 0;
   $("prevCelebrate").addEventListener("click", () => {

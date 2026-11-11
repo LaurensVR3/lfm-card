@@ -113,6 +113,59 @@
 /* Rotating details row */
 .race{position:absolute;left:104px;right:96px;top:834px;height:44px;display:flex;align-items:center;gap:22px;
   font-size:19px;letter-spacing:.12em;text-transform:uppercase;white-space:nowrap;color:var(--mist)}
+
+/* ------------------------------------------------------------ wide (21:9)
+   The canvas grows to the right: banner, stats bar and the two strips stretch,
+   and the stats bar gets a fourth column with career numbers. */
+.stat.career,.stats .div.career{display:none}
+html.wide .banner{width:calc(var(--w) * .7)}
+html.wide .stats{width:calc(var(--w) - 460px)}
+html.wide .stats .row{grid-template-columns:1.3fr auto 1.15fr auto .75fr auto 1fr}
+html.wide .stats .div.career{display:block}
+html.wide .stat.career{display:flex}
+.stat .v small{font-size:24px;font-weight:600;color:var(--ink-soft);margin-left:12px;letter-spacing:.02em;font-style:italic}
+
+/* ------------------------------------------------------------ ultrawide (32:9)
+   The 16:9 card stays on the left; the details row becomes a side panel on the
+   right that shows every page at once instead of rotating. */
+html.ultra .banner{width:calc(var(--w) * .62)}
+html.ultra .stats{width:1140px}
+html.ultra .stats .row{grid-template-columns:1.3fr auto 1.15fr auto .75fr}
+html.ultra .stat.career,html.ultra .stats .div.career{display:none}
+html.ultra .rating{right:auto;left:1088px}
+html.ultra .race{left:1600px;right:96px;top:170px;height:586px;display:block;font-size:27px;letter-spacing:.1em}
+html.ultra .race::before{content:"";position:absolute;inset:0;clip-path:polygon(28px 0,100% 0,calc(100% - 28px) 100%,0 100%);
+  background:linear-gradient(90deg,rgba(30,30,34,.9),rgba(22,22,25,.78));box-shadow:inset 0 1px 0 rgba(255,255,255,.06)}
+html.ultra .race::after{content:"";position:absolute;left:0;top:0;width:6px;height:100%;background:var(--volt);
+  transform:skewX(-2.7deg);transform-origin:bottom;animation:breathe 4s ease-in-out infinite}
+html.ultra .race .ptitle{display:none}
+html.ultra .race .pages{position:absolute;inset:18px 80px 18px 70px;overflow:hidden;display:flex;flex-direction:column;justify-content:space-evenly}
+html.ultra .race .page,html.ultra .race .page.on,html.ultra .race .page.off{position:relative;inset:auto;opacity:1;transform:none;transition:none;
+  flex:none;min-height:84px;padding-left:210px}
+html.ultra .race .page+.page{border-top:1px solid var(--rule)}
+html.ultra .race .page[data-empty="1"]{display:none}
+html.ultra .race .page::before{content:attr(data-label);position:absolute;left:0;top:50%;transform:translateY(-50%);
+  font-size:17px;font-weight:700;font-style:italic;letter-spacing:.26em;text-transform:uppercase;color:var(--volt)}
+html.ultra .race .page[data-value]:not([data-value=""])::before{transform:translateY(-110%)}
+html.ultra .race .page[data-value]:not([data-value=""])::after{content:attr(data-value);position:absolute;left:0;top:50%;margin-top:4px;
+  font-size:15px;font-style:italic;letter-spacing:.2em;color:var(--mist)}
+html.ultra .race .item img.flag{width:42px;height:28px}
+html.ultra .race .door{line-height:38px}
+html.ultra .race .door b{font-size:26px}
+html.ultra .race svg.wx{width:36px;height:36px}
+/* SOF field: all chips at once, wrapping */
+html.ultra .race .field{flex:1;-webkit-mask-image:none;mask-image:none;align-self:auto;padding:14px 0}
+html.ultra .race .ftrack{position:static;flex-wrap:wrap;gap:12px 34px;padding:0;transform:none!important}
+html.ultra .race .rv{font-size:22px}
+html.ultra .race .form b{min-width:60px;height:36px;font-size:19px}
+html.ultra .next{top:786px}
+/* ?hide=career: no Wins column in the stats bar */
+.hide-career .stat.career,.hide-career .stats .div.career{display:none!important}
+html.wide.hide-career .stats .row{grid-template-columns:1.3fr auto 1.15fr auto .75fr}
+.careerrow{display:flex;gap:46px}
+.careerrow div{display:flex;flex-direction:column;gap:4px;white-space:nowrap}
+.careerrow b{font-size:40px;font-weight:700;font-style:italic;line-height:1;letter-spacing:0}
+.careerrow span{font-size:14px;letter-spacing:.24em;text-transform:uppercase;color:var(--ink-faint)}
 </style>
 </head>
 <body>
@@ -181,6 +234,17 @@
           </div>
           <div><div class="k">Division</div><div class="v volt" id="division">—</div></div>
         </div>
+        <div class="div career"></div>
+        <div class="stat career">
+          <div class="icon">
+            <svg width="64" height="64" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+              <path d="M18 6h28v18c0 9-6 16-14 16s-14-7-14-16V6Z" stroke="#8a8a90" stroke-width="5" stroke-linejoin="round"/>
+              <path d="M18 12H7c0 10 5 15 12 16M46 12h11c0 10-5 15-12 16" stroke="#8a8a90" stroke-width="4" stroke-linecap="round"/>
+              <path d="M32 40v10M20 58h24" stroke="#cfcfd4" stroke-width="5" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div><div class="k">Wins</div><div class="v" id="careerWins"><span>—</span><small></small></div></div>
+        </div>
       </div>
     </div>
 
@@ -228,6 +292,8 @@
           <span class="item" id="resLapItem"><span class="k">Best lap</span><span class="v" id="resLap"></span></span>
         </div>
         <div class="page" data-title="Form" id="pageForm"><div class="form" id="form"></div></div>
+        <!-- Ultrawide side panel only -->
+        <div class="page" data-title="Career" id="pageCareer"><div class="careerrow" id="careerRow"></div></div>
       </div>
     </div>
   </div>
@@ -238,7 +304,7 @@
 const {$, S} = LFM;
 LFM.fitStage(1600, 900);
 const coin = LFM.coin($("coin"));
-const rot = LFM.rotator({pages: $("pages"), title: $("pageTitle"), bar: $("pageBar")});
+const rot = LFM.rotator({pages: $("pages"), title: $("pageTitle"), bar: $("pageBar"), isStatic: () => LFM.STAGE.ultra});
 const show = (id, on) => { $(id).hidden = !on; };
 const posText = r => r.dnf ? "DNF" : `P${r.finish}`;
 const gain = r => r.dnf || !r.start ? null : r.start - r.finish;
@@ -252,9 +318,11 @@ function setGain(el, r){
 function renderProfile(v){
   $("first").textContent = v.first;
   $("last").textContent = v.last;
+  // Wide canvases give long names a bit more room (ultrawide: the side panel takes it).
+  const room = LFM.STAGE.ultra ? 680 : 680 + (LFM.STAGE.w - 1600) / 2;
   const box = $("name"); let size = 96;
   box.style.fontSize = size + "px";
-  while (Math.max($("first").scrollWidth, $("last").scrollWidth) > 680 && size > 48){ size -= 2; box.style.fontSize = size + "px"; }
+  while (Math.max($("first").scrollWidth, $("last").scrollWidth) > room && size > 48){ size -= 2; box.style.fontSize = size + "px"; }
 
   $("team").textContent = v.team || "LFM";
   $("logo").hidden = !v.lavaro;
@@ -267,12 +335,15 @@ function renderProfile(v){
   $("sim").textContent = v.simName;
   $("rating").textContent = v.rating ?? "—";
   LFM.fitText($("rating"), 225, 112, 72);  // keep clear of the slash
-  $("races").textContent = v.races != null ? `${v.races} ranked races` : "";
+  $("races").textContent = v.races != null ? LFM.t("{n} ranked races", {n: v.races}) : "";
   LFM.paintLicence($("licencePlate"), $("licence"), v.licence);
   LFM.fitText($("licencePlate"), 300, 44, 26);
   LFM.paintSR($("srPlate"), $("sr"), v.sr);
   $("srNum").textContent = v.srNum;
   $("division").textContent = v.division ?? "—";
+  const st = S.stats;
+  $("careerWins").firstChild.textContent = st && st.wins != null ? st.wins : "—";
+  $("careerWins").lastChild.textContent = st && st.starts ? "/ " + LFM.t("{n} starts", {n: st.starts}) : "";
 }
 
 // Strip above the details row. Re-run every second for the countdown.
@@ -285,24 +356,24 @@ function renderStrip(){
   $("next").classList.remove("soon");
   if (race){
     const n = S.next, r = LFM.currentRace();
-    $("nextTag").textContent = mode === "live" ? "Racing now" : "Next race";
+    $("nextTag").textContent = LFM.t(mode === "live" ? "Racing now" : "Next race");
     $("nextSeries").textContent = n.series;
     $("nextMeta").textContent = [n.raceId, n.split].filter(Boolean).join("  /  ");
     const drivers = (r && r.drivers) || n.drivers;
-    $("nextDrivers").textContent = drivers ? `${drivers} ${drivers == 1 ? "driver" : "drivers"}` : "";
+    $("nextDrivers").textContent = drivers ? LFM.t(drivers == 1 ? "{n} driver" : "{n} drivers", {n: drivers}) : "";
     show("nextDrivers", !!drivers);
     $("nextAt").textContent = n.start.toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"});
     $("nextDelta").textContent = "";
     const diff = n.start - Date.now();
-    $("nextClock").textContent = mode === "live" ? "LIVE" : `in ${LFM.countdown(diff)}`;
+    $("nextClock").textContent = mode === "live" ? LFM.t("LIVE") : LFM.t("in {t}", {t: LFM.countdown(diff)});
     $("next").classList.toggle("soon", diff > 0 && diff < 60e3);
   } else if (res){
     const r = S.result;
-    $("nextTag").textContent = "Last race";
+    $("nextTag").textContent = LFM.t("Last race");
     $("nextSeries").textContent = r.series;
     $("nextMeta").textContent = [r.track, LFM.ago(r.date)].filter(Boolean).join("  /  ");
     show("nextDrivers", false);
-    $("nextAt").textContent = r.start && !r.dnf ? `from P${r.start}` : "";
+    $("nextAt").textContent = r.start && !r.dnf ? LFM.t("from P{n}", {n: r.start}) : "";
     setGain($("nextDelta"), r);
     $("nextClock").textContent = posText(r);
   }
@@ -311,7 +382,8 @@ function renderStrip(){
 function renderPages(){
   const mode = S.mode, r = LFM.currentRace(), res = S.result;
   const race = (mode === "next" || mode === "live") && r;
-  for (const id of ["pageRace","pageConditions","pageField","pageLast","pageResult","pageForm"]) $(id).dataset.empty = "1";
+  const ultra = LFM.STAGE.ultra;
+  for (const id of ["pageRace","pageConditions","pageField","pageLast","pageResult","pageForm","pageCareer"]) $(id).dataset.empty = "1";
 
   if (race){
     $("pageRace").dataset.empty = "";
@@ -326,14 +398,14 @@ function renderPages(){
     show("raceDoor", !!r.door); $("raceDoorNo").textContent = r.door ? `#${r.door}` : "";
     show("raceSeed", !!r.seed);
     $("raceSeedPos").textContent = r.seed ? `P${r.seed}` : "";
-    $("raceSeedOf").textContent = r.seed ? `of ${r.classSize} ${r.carClass || ""}`.trim() : "";
+    $("raceSeedOf").textContent = r.seed ? `${LFM.t("of {n}", {n: r.classSize})} ${r.carClass || ""}`.trim() : "";
     show("raceSof", !!r.sof); $("raceSofVal").textContent = r.sof || "";
     // Long class names (RR "Super Touring") can push the row past the edge.
-    if (LFM.overflows($("pageRace"))) $("raceSeedOf").textContent = `of ${r.classSize}`;
+    if (LFM.overflows($("pageRace"))) $("raceSeedOf").textContent = LFM.t("of {n}", {n: r.classSize});
 
     renderConditions(r);
     LFM.renderRivals($("field"), r.field);
-    $("pageField").dataset.empty = r.field.length > 1 ? "" : "1";
+    $("pageField").dataset.empty = r.field.length > 1 && !LFM.hidden("field") ? "" : "1";
     $("pageField").dataset.value = r.sof || "";
 
     if (res){
@@ -355,11 +427,23 @@ function renderPages(){
     show("resIncItem", res.incidents != null); $("resInc").textContent = res.incidents;
     show("resLapItem", !!res.bestLap); $("resLap").textContent = res.bestLap || "";
   }
-  if (mode === "result" && S.form.length > 1){
+  // The side panel has room for form and career numbers in every mode.
+  if ((mode === "result" || ultra) && S.form.length > 1 && !LFM.hidden("form")){
     $("pageForm").dataset.empty = "";
     LFM.renderForm($("form"), S.form);
   }
-  for (const id of ["pageRace","pageConditions","pageLast","pageResult"]) LFM.tighten($(id));
+  const st = S.stats;
+  if (ultra && st && st.starts && !LFM.hidden("career")){
+    $("pageCareer").dataset.empty = "";
+    $("careerRow").replaceChildren(...[["Starts", st.starts], ["Wins", st.wins], ["Podiums", st.podium], ["Poles", st.poles],
+      ["Podium rate", st.podiumrate != null ? `${st.podiumrate}%` : null]]
+      .filter(([, n]) => n != null)
+      .map(([k, n]) => {
+        const d = document.createElement("div"), b = document.createElement("b"), sp = document.createElement("span");
+        b.textContent = n; sp.textContent = LFM.t(k); d.append(b, sp); return d;
+      }));
+  }
+  for (const id of ["pageRace","pageConditions","pageLast","pageResult"]) LFM.tighten($(id), ultra ? 44 : 30, ultra ? 27 : 19);
   $("race").hidden = ![...$("pages").children].some(p => !p.dataset.empty);
   rot.refresh();
 }
@@ -377,7 +461,7 @@ function renderConditions(r){
   }
   show("sessRace", !!r.raceMinutes);
   $("sessRaceVal").textContent = r.raceMinutes ? `${r.raceMinutes} min` : "";
-  const names = {P: "Practice", Q: "Quali"};
+  const names = {P: LFM.t("Practice"), Q: LFM.t("Quali")};
   const others = r.sessions.filter(x => names[x.type]).map(x => `${names[x.type]} ${x.minutes} min`);
   $("sessOtherVal").textContent = others.join("  ·  ");
   show("sessOther", others.length > 0);
