@@ -162,6 +162,11 @@ html.ultra .next{top:786px}
 /* ?hide=career: no Wins column in the stats bar */
 .hide-career .stat.career,.hide-career .stats .div.career{display:none!important}
 html.wide.hide-career .stats .row{grid-template-columns:1.3fr auto 1.15fr auto .75fr}
+.race .crew{font-size:20px;gap:30px}
+.race .crew .cnm{font-style:normal;letter-spacing:.08em}
+html.ultra .race .crew{flex-wrap:wrap;row-gap:14px;font-size:24px;padding:12px 0}
+.race .trends{gap:44px}
+html.ultra .race .trends{gap:56px;padding:6px 0}
 .careerrow{display:flex;gap:46px}
 .careerrow div{display:flex;flex-direction:column;gap:4px;white-space:nowrap}
 .careerrow b{font-size:40px;font-weight:700;font-style:italic;line-height:1;letter-spacing:0}
@@ -275,6 +280,7 @@ html.wide.hide-career .stats .row{grid-template-columns:1.3fr auto 1.15fr auto .
           <span class="item" id="sessRace"><span class="k">Race</span><span class="v" id="sessRaceVal"></span></span>
           <span class="item" id="sessOther"><span class="sub" id="sessOtherVal"></span></span>
         </div>
+        <div class="page" data-title="Drivers" id="pageCrew"><div class="crew" id="crew"></div></div>
         <div class="page" data-title="SOF" id="pageField"><div class="field"><div class="ftrack" id="field"></div></div></div>
         <div class="page" data-title="Last race" id="pageLast">
           <span class="item"><span class="v" id="lastTrack"></span><span class="sub" id="lastAgo"></span></span>
@@ -291,7 +297,12 @@ html.wide.hide-career .stats .row{grid-template-columns:1.3fr auto 1.15fr auto .
           <span class="item" id="resIncItem"><span class="k">Incidents</span><span class="v" id="resInc"></span></span>
           <span class="item" id="resLapItem"><span class="k">Best lap</span><span class="v" id="resLap"></span></span>
         </div>
+        <div class="page" data-title="Championship" id="pageChamp">
+          <span class="item"><span class="v volt" id="champPos"></span><span class="sub" id="champRest"></span></span>
+          <span class="item"><span class="v" id="champSeries"></span></span>
+        </div>
         <div class="page" data-title="Form" id="pageForm"><div class="form" id="form"></div></div>
+        <div class="page" data-title="Trend" id="pageTrend"><div class="trends" id="trends"></div></div>
         <!-- Ultrawide side panel only -->
         <div class="page" data-title="Career" id="pageCareer"><div class="careerrow" id="careerRow"></div></div>
       </div>
@@ -360,7 +371,7 @@ function renderStrip(){
     $("nextSeries").textContent = n.series;
     $("nextMeta").textContent = [n.raceId, n.split].filter(Boolean).join("  /  ");
     const drivers = (r && r.drivers) || n.drivers;
-    $("nextDrivers").textContent = drivers ? LFM.t(drivers == 1 ? "{n} driver" : "{n} drivers", {n: drivers}) : "";
+    $("nextDrivers").textContent = drivers ? LFM.entrants(drivers, r) : "";
     show("nextDrivers", !!drivers);
     $("nextAt").textContent = n.start.toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"});
     $("nextDelta").textContent = "";
@@ -383,7 +394,7 @@ function renderPages(){
   const mode = S.mode, r = LFM.currentRace(), res = S.result;
   const race = (mode === "next" || mode === "live") && r;
   const ultra = LFM.STAGE.ultra;
-  for (const id of ["pageRace","pageConditions","pageField","pageLast","pageResult","pageForm","pageCareer"]) $(id).dataset.empty = "1";
+  for (const id of ["pageRace","pageConditions","pageCrew","pageField","pageLast","pageResult","pageForm","pageCareer","pageChamp","pageTrend"]) $(id).dataset.empty = "1";
 
   if (race){
     $("pageRace").dataset.empty = "";
@@ -404,6 +415,14 @@ function renderPages(){
     if (LFM.overflows($("pageRace"))) $("raceSeedOf").textContent = LFM.t("of {n}", {n: r.classSize});
 
     renderConditions(r);
+    // Team race: who shares the car, with the team name in the title.
+    const mates = LFM.crewMates(r);
+    if (mates.length){
+      $("pageCrew").dataset.empty = "";
+      $("pageCrew").dataset.value = r.teamName || "";
+      LFM.renderCrew($("crew"), mates);
+      if (!ultra && LFM.overflows($("pageCrew"))) LFM.renderCrew($("crew"), mates, {avatars: false});
+    }
     LFM.renderRivals($("field"), r.field);
     $("pageField").dataset.empty = r.field.length > 1 && !LFM.hidden("field") ? "" : "1";
     $("pageField").dataset.value = r.sof || "";
@@ -433,7 +452,24 @@ function renderPages(){
     LFM.renderForm($("form"), S.form);
   }
   const st = S.stats;
-  if (ultra && st && st.starts && !LFM.hidden("career")){
+  // Championship position in the series on screen.
+  const champ = LFM.standingText(S.standings);
+  if (champ && (race || mode === "result")){
+    $("pageChamp").dataset.empty = "";
+    $("champPos").textContent = champ.pos;
+    $("champRest").textContent = champ.rest;
+    $("champSeries").textContent = race ? r.series || S.next.series : res.series;
+  }
+  // Rating / SR trend: when there's no race to show (and on the side panel then too).
+  if (!race){
+    const n = LFM.renderTrends($("trends"), ultra ? {w: 230, h: 56} : {w: 170, h: 34});
+    if (n) $("pageTrend").dataset.empty = "";
+  }
+  // Ultrawide side panel before a race: the championship takes the last race's row.
+  if (ultra && race && !$("pageChamp").dataset.empty) $("pageLast").dataset.empty = "1";
+  // Ultrawide side panel: career numbers, unless the race pages already fill it.
+  const busy = race && (!$("pageCrew").dataset.empty || !$("pageChamp").dataset.empty);
+  if (ultra && st && st.starts && !LFM.hidden("career") && !busy){
     $("pageCareer").dataset.empty = "";
     $("careerRow").replaceChildren(...[["Starts", st.starts], ["Wins", st.wins], ["Podiums", st.podium], ["Poles", st.poles],
       ["Podium rate", st.podiumrate != null ? `${st.podiumrate}%` : null]]
@@ -443,7 +479,7 @@ function renderPages(){
         b.textContent = n; sp.textContent = LFM.t(k); d.append(b, sp); return d;
       }));
   }
-  for (const id of ["pageRace","pageConditions","pageLast","pageResult"]) LFM.tighten($(id), ultra ? 44 : 30, ultra ? 27 : 19);
+  for (const id of ["pageRace","pageConditions","pageLast","pageResult","pageChamp"]) LFM.tighten($(id), ultra ? 44 : 30, ultra ? 27 : 19);
   $("race").hidden = ![...$("pages").children].some(p => !p.dataset.empty);
   rot.refresh();
 }

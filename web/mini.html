@@ -60,12 +60,13 @@ LFM.start(() => {
   if (v.flag) $("flag").src = v.flag;
   $("first").textContent = v.first; $("last").textContent = v.last;
   $("game").textContent = GAME[v.simCode] || v.simCode.toUpperCase();
+  $("game").hidden = !v.simCode;
   $("elo").textContent = v.rating ?? "—";
   LFM.paintLicence($("licencePlate"), $("licence"), v.licence);
   LFM.fitText($("licencePlate"), 230, 30, 22);
   $("srPlate").hidden = !v.sr;
   if (v.sr) LFM.paintSR($("srPlate"), $("sr"), v.sr);
-  $("srNum").textContent = v.srNum;
+  $("srNum").textContent = v.sr ? v.srNum : "";
   // Long names shrink, but never below a readable size; then they're cut off.
   const name = $("name"), room = 800 - 34 - 26 - 72 - 18;
   let size = 48;

@@ -182,6 +182,23 @@ svg.wx{width:30px;height:30px;flex:none}
 .hide-banner .banner{display:none!important}
 
 /* Data older than 10 minutes (LFM unreachable) */
+/* Crew chips (team races): the other drivers sharing the car */
+.crew{display:flex;align-items:center;gap:22px;min-width:0;overflow:hidden;white-space:nowrap}
+.cm{flex:none;display:flex;align-items:center;gap:10px}
+.cm .cav{width:1.7em;height:1.7em;border-radius:50%;object-fit:cover;box-shadow:0 0 0 2px var(--volt)}
+.cm .cfl{width:1.35em;height:.9em;object-fit:cover;transform:skewX(-14deg);border-radius:1px 3px 1px 3px}
+.cm .cnm{font-weight:700;font-style:italic;text-transform:uppercase}
+.cm .clv{width:.45em;height:.45em;border-radius:50%;background:var(--down);box-shadow:0 0 8px var(--down);animation:pulse 1.4s ease-in-out infinite}
+/* Rating / safety rating trend sparklines */
+.trends{display:flex;align-items:center;gap:34px;min-width:0;white-space:nowrap}
+.trend{flex:none;display:flex;align-items:center;gap:14px}
+.trend .tk{font-weight:700;font-style:italic;letter-spacing:.24em;text-transform:uppercase;color:var(--ink-faint);font-size:.75em}
+.trend .spark{display:block;flex:none;overflow:visible}
+.trend .tv{display:flex;align-items:baseline;gap:8px}
+.trend .tv b{font-weight:700;font-style:italic;font-variant-numeric:tabular-nums}
+.trend .tv em{font-style:normal;font-size:.8em}
+.notice{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);max-width:92vw;padding:.7em 1.1em;border-left:.3em solid #E8FF29;
+  background:rgba(20,20,22,.92);color:#EBEBEB;font:600 max(11px,min(2.2vw,9vh))/1.35 var(--sans);text-align:center;border-radius:4px}
 .stale{position:absolute;right:14px;bottom:10px;z-index:60;padding:4px 12px;border-radius:4px;
   background:rgba(20,20,23,.9);border:1px solid rgba(255,92,92,.5);color:var(--down);
   font-size:14px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;white-space:nowrap}

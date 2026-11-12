@@ -266,6 +266,14 @@ html.ultra .res .grid{left:calc(880px + (var(--w) - 880px - 72px) * .5 + 40px);t
 .frame.no-bottom .cn.bl,.frame.no-bottom .cn.br{bottom:14px}
 .hide-corners .frame .cn{display:none}
 .hide-entrylist .race .grid{display:none!important}
+/* Team races: crew in the bottom bar, team-mates marked in the entry list */
+.bottom .crew{flex:0 1 auto;font-size:21px;gap:24px}
+.er.mate .rdoor{background:transparent;color:var(--volt);box-shadow:inset 0 0 0 2px var(--volt)}
+.er.mate .rname{color:var(--mist)}
+.grid .hd .mts{color:var(--volt)}
+.bottom .trends{flex:none;flex-direction:column;align-items:flex-start;gap:2px;font-size:19px}
+.bottom .trend .tk{width:5.6em}
+.career .champ b{color:var(--volt)}
 </style>
 </head>
 <body>
@@ -313,7 +321,7 @@ html.ultra .res .grid{left:calc(880px + (var(--w) - 880px - 72px) * .5 + 40px);t
     <div class="tiles" id="tiles"></div>
 
     <div class="grid" id="grid">
-      <div class="hd"><b id="gridTitle">Entry list</b><span id="gridMeta"></span><span class="strm" id="gridLive"></span></div>
+      <div class="hd"><b id="gridTitle">Entry list</b><span id="gridMeta"></span><span class="mts" id="gridMates"></span><span class="strm" id="gridLive"></span></div>
       <div class="rows" id="gridRows"></div>
     </div>
 
@@ -331,10 +339,14 @@ html.ultra .res .grid{left:calc(880px + (var(--w) - 880px - 72px) * .5 + 40px);t
       </div>
       <div class="vr"></div>
       <div class="career" id="career" hidden></div>
+      <div class="lbl" id="crewLbl" hidden>Drivers</div>
+      <div class="crew" id="crew" hidden></div>
       <div class="vr" id="careerVr" hidden></div>
       <div class="lbl" id="bottomLbl"></div>
       <div class="field" id="fieldBox"><div class="ftrack" id="field"></div></div>
       <div class="form" id="form" hidden></div>
+      <div class="vr" id="trendVr" hidden></div>
+      <div class="trends" id="trends" hidden></div>
     </div>
   </div>
 
@@ -378,7 +390,6 @@ $("frame").classList.toggle("no-bottom", FRAME_BARS === "top");
 let framed = false;
 $("frame").hidden = !RACE_DAY;
 const GRID_ROW_H = 36, GRID_COL_W = 340;  // entry list row height, min column width
-const regionNames = new Intl.DisplayNames(["en"], {type:"region"});
 const hm = d => d.toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"});
 const el = (tag, cls, text) => {
   const e = document.createElement(tag);
@@ -456,8 +467,7 @@ function renderTrack(r){
     $("trackPh").dataset.src = t.image;
     $("trackPh").style.backgroundImage = `url("${t.image}")`;
   }
-  let country = "";
-  try { country = t.country ? regionNames.of(t.country.toUpperCase()) : ""; } catch {}
+  const country = t.country ? LFM.countryName(t.country) : "";
   const place = [t.city && !t.name.includes(t.city) && t.city, country].filter(Boolean).join(", ");
   $("trackDt").textContent = [t.km && `${(t.km / 1000).toFixed(2)} km`, t.turns && LFM.t("{n} turns", {n: t.turns}), place]
     .filter(Boolean).join("  ·  ");
@@ -514,7 +524,8 @@ function renderResults(res){
     if (d.elo != null) row.append(el("span", "elo " + LFM.deltaClass(d.elo), LFM.signed(d.elo)));
     return row;
   }));
-  $("gridMeta").textContent = [res.carClass, LFM.t("{n} drivers", {n: list.length}),
+  $("gridMates").textContent = "";
+  $("gridMeta").textContent = [res.carClass, LFM.entrants(list.length, {teamRace: list.some(d => d.teamCar)}),
     from && `P${from + 1}–${Math.min(from + max, list.length)}`].filter(Boolean).join("  ·  ");
   $("gridLive").textContent = "";
 }
@@ -527,7 +538,7 @@ function renderGrid(r){
   const multi = r.classes > 1;
   $("grid").classList.toggle("multi", multi);
   $("gridRows").replaceChildren(...shown.map((d, k) => {
-    const row = el("div", d.me ? "er me" : "er");
+    const row = el("div", d.me ? "er me" : d.mate ? "er mate" : "er");
     const door = el("span", "rdoor"); door.append(el("em", "", `#${d.door}`));
     row.append(el("span", "pos", String(from + k + 1)), door);
     if (d.origin){ const img = el("img"); img.alt = ""; img.src = LFM.flagUrl(d.origin); row.append(img); }
@@ -538,8 +549,9 @@ function renderGrid(r){
     row.append(el("span", "relo", d.elo));
     return row;
   }));
-  $("gridMeta").textContent = [S.next.split, LFM.t("{n} drivers", {n: list.length}), from && `P${from + 1}–${Math.min(from + max, list.length)}`]
+  $("gridMeta").textContent = [S.next.split, LFM.entrants(list.length, r), from && `P${from + 1}–${Math.min(from + max, list.length)}`]
     .filter(Boolean).join("  ·  ");
+  $("gridMates").textContent = r.mates ? LFM.t(r.mates === 1 ? "{n} teammate" : "{n} teammates", {n: r.mates}) : "";
   $("gridLive").textContent = r.streamers ? "● " + LFM.t("{n} streaming", {n: r.streamers}) : "";
 }
 
@@ -562,13 +574,22 @@ function renderBroadcast(){
 }
 
 function renderCareer(show){
-  const st = S.stats;
-  show = show && st && st.starts && !LFM.hidden("career");
-  $("career").hidden = $("careerVr").hidden = !show;
+  const st = S.stats, r = LFM.currentRace(), mates = show ? LFM.crewMates(r) : [];
+  $("crew").hidden = $("crewLbl").hidden = !mates.length;
+  if (mates.length){
+    $("crewLbl").replaceChildren(LFM.t("Drivers"));
+    // The bar is shared with the driver and the form: flags and last names only.
+    LFM.renderCrew($("crew"), mates.map(d => ({...d, first: d.last ? "" : d.first})), {avatars: false});
+  }
+  show = show && !mates.length && st && st.starts && !LFM.hidden("career");
+  $("career").hidden = !show;
+  $("careerVr").hidden = !show && !mates.length;
   if (!show) return;
-  $("career").replaceChildren(...[["Starts", st.starts], ["Wins", st.wins], ["Podiums", st.podium], ["Poles", st.poles]]
-    .filter(([, v]) => v != null)
-    .map(([k, v]) => { const d = el("div"); d.append(el("b", "", v), el("span", "", LFM.t(k))); return d; }));
+  const champ = LFM.standingText(S.standings);
+  $("career").replaceChildren(...[["Championship", champ && champ.pos], ["Starts", st.starts], ["Wins", st.wins], ["Podiums", st.podium],
+    ["Poles", !champ && st.poles]]  // poles make room for the championship
+    .filter(([, v]) => v != null && v !== false)
+    .map(([k, v]) => { const d = el("div", k === "Championship" ? "champ" : ""); d.append(el("b", "", v), el("span", "", LFM.t(k))); return d; }));
 }
 
 
@@ -602,13 +623,17 @@ function renderFrame(){
   if (r && r.weather) item("", r.weather.temp != null ? `${r.weather.label} ${r.weather.temp}°C` : r.weather.label, LFM.WX_ICONS[r.weather.icon]);
   if (r && r.sof) item("SOF", String(r.sof));
   if (n.split) item("", n.split);
+  const champ = LFM.standingText(S.standings);
+  if (champ) item(LFM.t("Championship"), champ.pos);
   const drivers = (r && r.drivers) || n.drivers;
-  if (drivers) item("", LFM.t("{n} drivers", {n: drivers}));
+  if (drivers) item("", LFM.entrants(drivers, r));
   $("fMeta").replaceChildren(...meta);
 
   if (v.avatar) $("fAvatar").src = v.avatar;
   $("fFirst").textContent = v.first; $("fLast").textContent = v.last;
-  $("fSub").textContent = [v.team, v.rating != null && LFM.t("{n} rating", {n: v.rating})].filter(Boolean).join(" · ");
+  // Team race: the car's team (the door badge next to it says which car); solo: own team.
+  $("fSub").textContent = [r && r.teamRace && r.teamName ? r.teamName : v.team,
+    v.rating != null && LFM.t("{n} rating", {n: v.rating})].filter(Boolean).join(" · ");
   LFM.paintLicence($("fLicPlate"), $("fLic"), v.licence);
   $("fSrPlate").hidden = !v.sr;
   if (v.sr) LFM.paintSR($("fSrPlate"), $("fSr"), v.sr);
@@ -696,7 +721,7 @@ function render(){
     const n = S.next;
     $("series").textContent = n.series;
     const drivers = (r && r.drivers) || n.drivers;
-    $("meta").textContent = [n.raceId, n.split, drivers && LFM.t("{n} drivers", {n: drivers}), r && r.week && LFM.t("Week {n}", {n: r.week})]
+    $("meta").textContent = [r && r.teamName, n.raceId, n.split, drivers && LFM.entrants(drivers, r), r && r.week && LFM.t("Week {n}", {n: r.week})]
       .filter(Boolean).join("  /  ");
     if (r){
       if (r.car) tiles.push(tile("Car", r.car));
@@ -717,6 +742,8 @@ function render(){
     $("meta").textContent = [res.track, LFM.ago(res.date)].filter(Boolean).join("  /  ");
     tiles.push(tile("Start", res.start ? `P${res.start}` : "—"));
     tiles.push(tile("Finish", res.dnf ? "DNF" : `P${res.finish}`));
+    const champ = LFM.standingText(S.standings);
+    if (champ){ const t = tile("Championship", champ.pos); t.lastChild.append(small(champ.rest.split(" · ")[0])); tiles.push(t); }
     if (res.elo != null) tiles.push(tile("Rating", LFM.signed(res.elo)));
     if (res.sr != null) tiles.push(tile("Safety", LFM.signed(res.sr, 2)));
     if (res.incidents != null) tiles.push(tile("Incidents", String(res.incidents)));
@@ -755,9 +782,12 @@ function render(){
 
   // Bottom: career + recent form in the race layout; the simple race layout
   // (no race details) keeps the field ticker, result/idle the full form.
+  const trendOn = !race && LFM.renderTrends($("trends"), {w: 150, h: 28}) > 0;
+  $("trends").hidden = $("trendVr").hidden = !trendOn;
   const field = r ? r.field : [];
   const ticker = race && !full && field.length > 1 && !LFM.hidden("field");
-  const form = LFM.hidden("form") ? [] : full ? S.form.slice(-5) : S.form;
+  // Race layout: the last 5 finishes, or 3 when the crew shares the bar.
+  const form = LFM.hidden("form") ? [] : full ? S.form.slice(LFM.crewMates(r).length ? -3 : -5) : S.form;
   $("fieldBox").hidden = !ticker;
   $("form").hidden = ticker || form.length < 2;
   $("bottomLbl").textContent = ticker ? LFM.t("Field") : form.length > 1 ? LFM.t("Form") : "";
@@ -817,7 +847,7 @@ function tick(){
   }
 }
 
-LFM.start(r => { render(r); updateFrame(); }, {broadcast: true, hold: () => framed});
+LFM.start(r => { render(r); updateFrame(); }, {broadcast: true, hold: () => framed, scenes: !RACE_DAY});
 setInterval(() => { if (S.view){ tick(); updateFrame(); } }, 1000);
 </script>
 </body>

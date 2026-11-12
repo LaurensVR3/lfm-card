@@ -44,6 +44,8 @@ const HIDE = new Set((PARAMS.get("hide") || "").toLowerCase().split(/[\s,]+/).fi
 const hidden = k => HIDE.has(k);
 const BROADCAST = PARAMS.get("broadcast") !== "off" && !HIDE.has("broadcast");
 const BROADCAST_MS = 10 * 60e3;  // YouTube schedule refresh (nginx caches it for as long)
+const STANDINGS_MS = 30 * 60e3;  // championship standings refresh (they're big and change once a race)
+const TREND_SIZE = 30;           // races in the rating / safety rating trend
 // Official LFM Twitch channels, as listed on lowfuelmotorsport.com.
 const LFM_TWITCH = {lowfuelmotorsport_en:"EN", lowfuelmotorsport_de:"DE", lowfuelmotorsport_es:"ES"};
 const LFM_YOUTUBE = "youtube.com/@LowFuelMotorsport";
@@ -71,6 +73,11 @@ const ASPECT = (() => {
 const LANG = (param("lang") || "").toLowerCase().slice(0, 2);
 const I18N = {
   de: {
+    "latest": "zuletzt",
+    "overall": "gesamt",
+    "Trend": "Verlauf", "Championship": "Meisterschaft", "{n} pts": "{n} Pkt.", "Div {n}": "Div. {n}",
+    "Drivers": "Fahrer", "{n} cars": "{n} Autos", "{n} teammates": "{n} Teamkollegen", "{n} teammate": "{n} Teamkollege",
+    "Can't load LFM driver {id}. Check the ID in the URL. Trying again…": "LFM-Fahrer {id} kann nicht geladen werden. Prüfe die ID in der URL. Neuer Versuch läuft…",
     "{n} turns": "{n} Kurven",
     "Practice": "Training", "Qualifying": "Qualifying", "Quali": "Quali", "Race": "Rennen",
     "{n} min ago": "vor {n} Min.", "{n}h ago": "vor {n} Std.", "yesterday": "gestern", "{n} days ago": "vor {n} Tagen",
@@ -98,6 +105,11 @@ const I18N = {
     "Safety rating": "Safety Rating", "SOF": "SOF", "last 10": "letzte 10", "LFM RATING": "LFM RATING", "LFM Rating": "LFM Rating",
   },
   es: {
+    "latest": "último",
+    "overall": "general",
+    "Trend": "Tendencia", "Championship": "Campeonato", "{n} pts": "{n} pts", "Div {n}": "Div. {n}",
+    "Drivers": "Pilotos", "{n} cars": "{n} coches", "{n} teammates": "{n} compañeros", "{n} teammate": "{n} compañero",
+    "Can't load LFM driver {id}. Check the ID in the URL. Trying again…": "No se puede cargar el piloto de LFM {id}. Revisa el ID en la URL. Reintentando…",
     "{n} turns": "{n} curvas",
     "Practice": "Libres", "Qualifying": "Clasificación", "Quali": "Clasif.", "Race": "Carrera",
     "{n} min ago": "hace {n} min", "{n}h ago": "hace {n} h", "yesterday": "ayer", "{n} days ago": "hace {n} días",
@@ -125,6 +137,11 @@ const I18N = {
     "Safety rating": "Safety rating", "last 10": "últimas 10", "LFM RATING": "RATING LFM", "LFM Rating": "Rating LFM",
   },
   fr: {
+    "latest": "dernier",
+    "overall": "au général",
+    "Trend": "Tendance", "Championship": "Championnat", "{n} pts": "{n} pts", "Div {n}": "Div. {n}",
+    "Drivers": "Pilotes", "{n} cars": "{n} voitures", "{n} teammates": "{n} coéquipiers", "{n} teammate": "{n} coéquipier",
+    "Can't load LFM driver {id}. Check the ID in the URL. Trying again…": "Impossible de charger le pilote LFM {id}. Vérifie l'ID dans l'URL. Nouvel essai…",
     "{n} turns": "{n} virages",
     "Practice": "Essais", "Qualifying": "Qualifications", "Quali": "Qualifs", "Race": "Course",
     "{n} min ago": "il y a {n} min", "{n}h ago": "il y a {n} h", "yesterday": "hier", "{n} days ago": "il y a {n} jours",
@@ -152,6 +169,11 @@ const I18N = {
     "Safety rating": "Safety rating", "last 10": "10 dernières", "LFM RATING": "RATING LFM", "LFM Rating": "Rating LFM",
   },
   it: {
+    "latest": "ultimo",
+    "overall": "assoluto",
+    "Trend": "Andamento", "Championship": "Campionato", "{n} pts": "{n} pt", "Div {n}": "Div. {n}",
+    "Drivers": "Piloti", "{n} cars": "{n} auto", "{n} teammates": "{n} compagni", "{n} teammate": "{n} compagno",
+    "Can't load LFM driver {id}. Check the ID in the URL. Trying again…": "Impossibile caricare il pilota LFM {id}. Controlla l'ID nell'URL. Nuovo tentativo…",
     "{n} turns": "{n} curve",
     "Practice": "Libere", "Qualifying": "Qualifiche", "Quali": "Quali", "Race": "Gara",
     "{n} min ago": "{n} min fa", "{n}h ago": "{n} h fa", "yesterday": "ieri", "{n} days ago": "{n} giorni fa",
@@ -179,6 +201,11 @@ const I18N = {
     "Safety rating": "Safety rating", "last 10": "ultime 10", "LFM RATING": "RATING LFM", "LFM Rating": "Rating LFM",
   },
   nl: {
+    "latest": "laatste",
+    "overall": "totaal",
+    "Trend": "Verloop", "Championship": "Kampioenschap", "{n} pts": "{n} ptn", "Div {n}": "Div. {n}",
+    "Drivers": "Rijders", "{n} cars": "{n} auto's", "{n} teammates": "{n} teamgenoten", "{n} teammate": "{n} teamgenoot",
+    "Can't load LFM driver {id}. Check the ID in the URL. Trying again…": "Kan LFM-coureur {id} niet laden. Controleer de ID in de URL. Opnieuw proberen…",
     "{n} turns": "{n} bochten",
     "Practice": "Training", "Qualifying": "Kwalificatie", "Quali": "Kwali", "Race": "Race",
     "{n} min ago": "{n} min geleden", "{n}h ago": "{n} u geleden", "yesterday": "gisteren", "{n} days ago": "{n} dagen geleden",
@@ -206,6 +233,11 @@ const I18N = {
     "Safety rating": "Safety rating", "last 10": "laatste 10", "LFM RATING": "LFM RATING", "LFM Rating": "LFM Rating",
   },
   pt: {
+    "latest": "último",
+    "overall": "geral",
+    "Trend": "Tendência", "Championship": "Campeonato", "{n} pts": "{n} pts", "Div {n}": "Div. {n}",
+    "Drivers": "Pilotos", "{n} cars": "{n} carros", "{n} teammates": "{n} colegas de equipe", "{n} teammate": "{n} colega de equipe",
+    "Can't load LFM driver {id}. Check the ID in the URL. Trying again…": "Não foi possível carregar o piloto LFM {id}. Verifique o ID na URL. Tentando de novo…",
     "{n} turns": "{n} curvas",
     "Practice": "Treino", "Qualifying": "Qualificação", "Quali": "Quali", "Race": "Corrida",
     "{n} min ago": "há {n} min", "{n}h ago": "há {n} h", "yesterday": "ontem", "{n} days ago": "há {n} dias",
@@ -251,8 +283,21 @@ function translatePage(){
   }
 }
 
+// ?sound=off (or 1-100 for the volume): the short sting that plays with a celebration.
+const SOUND = (() => {
+  const v = (param("sound") || "").toLowerCase();
+  if (/^(off|no|false|mute|0)$/.test(v)) return 0;
+  return Number(v) > 0 ? Math.min(100, Number(v)) / 100 : 0.6;
+})();
+// OBS scene switching: ?scenes=off, ?scene-race= / ?scene-result= for other scene names.
+const SCENES_ON = !/^(off|no|false|0)$/i.test(param("scenes") || "");
+const SCENE_RACE = (param("scene-race") || "").trim() || "LFM Racing";
+const SCENE_RESULT = (param("scene-result") || "").trim() || "LFM Starting soon";
+const SCENE_LEAD_MS = 60e3;      // switch to the racing scene this long before the server opens
+
 // ?demo=1: a made-up race starting in a minute, with your real profile (demo.js).
-const DEMO = /^(1|on|true|yes)$/i.test(param("demo") || "");
+// demo=team: a team race; demo=<race id>: replay a real race (see demo.js).
+const DEMO = /^(1|on|true|yes|team|\d{4,})$/i.test(param("demo") || "");
 // ?bg=off: no card / scene background, for putting the overlay over your own.
 const NOBG = /^(off|none|0|transparent)$/i.test(param("bg") || "");
 if (!MOTION) document.documentElement.classList.add("still");
@@ -271,6 +316,9 @@ const URLS = {
   past:  n => `${API}/users/getUsersPastRaces/${ID}?start=0&limit=${n}`,
   race:  id => `${API}/race/${id}`,
   cars:  `${API}/lists/getCars`,
+  // Championship standings of a season event: {class: {OVERALL | division: [rows]}}; team events: {class: [teams]}.
+  standings: id => `${API}/v2/seasons/getSeasonStandings/${id}`,
+  teamStandings: id => `${API}/v2/seasons/getSeasonTeamStandings/${id}`,
   card:  `/lfm-api/lfmlicense/${ID}`,    // fallback when the widget JSON fails
   // Which LFM-listed Twitch channels are live right now (Twitch "streams" rows). CORS-open.
   live:  `${API}/checkBroadcaster`,
@@ -305,7 +353,9 @@ const SR_STYLES = {  // keyed by SR class letter: S, A1-3, B1-3, ... F
 
 /* ------------------------------------------------------------------ helpers */
 const $ = id => document.getElementById(id);
-const regionNames = new Intl.DisplayNames(["en"], {type:"region"});
+// Country names in the overlay's language (?lang=), English otherwise.
+const regionNames = (() => { try { return new Intl.DisplayNames([LANG || "en", "en"], {type:"region"}); }
+                           catch { return new Intl.DisplayNames(["en"], {type:"region"}); } })();
 const flagUrl = cc => cc ? `https://flagcdn.com/${cc.toLowerCase()}.svg` : "";
 const countryName = cc => { try { return regionNames.of(cc.toUpperCase()); } catch { return cc; } };
 const pad = n => String(n).padStart(2, "0");
@@ -436,6 +486,7 @@ const S = {
   promo: null,     // {licence, at} when the licence went up recently
   okAt: 0,         // last successful profile fetch
   broadcast: null, // official LFM stream of the next race, see loadBroadcast()
+  standings: null, // championship position in the series on screen, see loadStandings()
 };
 let carNames = null, carLogos = new Map();
 const realLogo = f => f && !/placeholder/i.test(f) ? f : null;
@@ -486,19 +537,41 @@ function parseCard(html){
 // Pull this driver's entry out of the race. Door numbers are handed out by Elo
 // within each class (ACC: GT3 101+, GT4 401+), so the seed is their Elo rank
 // among same-class drivers in their split.
+// Team races (endurance, driver swaps) list cars instead of drivers: {teamname,
+// car_number, car_elo, livery, drivers: [...]}. They're flattened to one row per
+// car in the solo shape, keyed to this driver when they're in it.
+const isMe = d => !!d && String(d.user_id ?? d.id) === ID;
+function carRows(entries){
+  if (!entries.some(e => Array.isArray(e.drivers))) return entries;
+  return entries.map(c => {
+    const crew = c.drivers || [], mine = crew.find(isMe), lead = mine || crew[0] || {};
+    return {...lead, raceNumber: c.car_number ?? lead.raceNumber, car_model: c.car_model ?? lead.car_model,
+      car_class: c.car_class ?? lead.car_class, elo: c.car_elo ?? lead.elo, livery: c.livery ?? lead.livery,
+      split: lead.split ?? c.split ?? 1, user_id: lead.user_id, teamname: c.teamname || lead.team_name || "",
+      crew, is_live: crew.some(d => d.is_live)};
+  });
+}
+const crewOf = car => (car.crew || []).map(d => ({first: d.vorname || "", last: d.nachname || "", origin: d.origin,
+  elo: d.elo, avatar: d.avatar, licence: d.license || "", live: !!d.is_live, me: isMe(d)}));
+
 function parseRace(race, cars){
-  const entries = (race.participants && race.participants.entries) || [];
-  const me = entries.find(e => String(e.user_id) === ID);
+  const raw = (race.participants && race.participants.entries) || [];
+  const teamRace = raw.some(e => Array.isArray(e.drivers));
+  const entries = carRows(raw);
+  const me = entries.find(isMe);
+  const myTeam = S.user && S.user.team ? S.user.team.team_id : null;
   const sim = Number((race.track && race.track.sim_id) || (race.event && race.event.sim_id)) || null;
   const trk = race.track, ev = race.event || {};
   const info = {
     raceId: Number(race.race_id),
     sim,
+    eventId: Number(ev.event_id || race.event_id) || null, eventType: ev.event_type || "",
     series: ev.event_name || "",
     week: Number(race.season_week) || null,
     track: trk ? {name: trk.track_name, country: trk.country, km: trk.km, turns: trk.turns || null,
                 city: trk.city || "", image: trk.thumbnail || ""} : null,
     sof: race.sof || null,
+    teamRace,        // entries are cars with several drivers; `crew` = the drivers in this car
     drivers: entries.length,
     field: [],
     grid: [],        // the whole split (class first), see below
@@ -513,10 +586,17 @@ function parseRace(race, cars){
     info.drivers = split.length;
     info.classes = new Set(split.map(e => e.car_class)).size;
     // Own class by Elo, then the other classes.
+    // Team race rows show the team name, solo rows the driver. `mate`: same LFM team.
+    const who = e => teamRace
+      ? {first: e.teamname || (e.crew || []).map(d => d.nachname || d.vorname).filter(Boolean).join(" / "), last: "", origin: null}
+      : {first: e.vorname, last: e.nachname, origin: e.origin};
+    const mate = e => e !== me && !!myTeam && (e.team_id === myTeam || (e.crew || []).some(d => d.team_id === myTeam));
     info.grid = rivals.concat(split.filter(e => e.car_class !== me.car_class).sort((a, b) => b.elo - a.elo))
-      .map(e => ({door: e.raceNumber, first: e.vorname, last: e.nachname, origin: e.origin, elo: e.elo,
-                  carClass: e.car_class, licence: e.license || "", me: e === me,
-                  live: !!e.is_live, team: e.team_name || "", car: cars ? cars.get(`${sim}:${e.car_model}`) : null}));
+      .map(e => ({door: e.raceNumber, ...who(e), elo: e.elo,
+                  carClass: e.car_class, licence: e.license || "", me: e === me, mate: mate(e),
+                  live: !!e.is_live, team: e.teamname || e.team_name || "", car: cars ? cars.get(`${sim}:${e.car_model}`) : null}));
+    info.mates = info.grid.filter(g => g.mate).length;
+    if (teamRace){ info.teamName = me.teamname; info.crew = crewOf(me); }
     info.streamers = split.filter(e => e.is_live).length;
     info.car = cars ? cars.get(`${sim}:${me.car_model}`) : null;
     info.carLogo = carLogos.get(`${sim}:${me.car_model}`) || null;
@@ -533,7 +613,7 @@ function parseRace(race, cars){
     const idx = rivals.indexOf(me);
     const from = Math.max(0, Math.min(idx - Math.floor(FIELD_SIZE / 2), rivals.length - FIELD_SIZE));
     info.field = rivals.slice(from, from + FIELD_SIZE).map(e => ({
-      door: e.raceNumber, first: e.vorname, last: e.nachname, origin: e.origin, elo: e.elo, me: e === me}));
+      door: e.raceNumber, ...who(e), elo: e.elo, me: e === me}));
   }
 
   Object.assign(info, parseServer(race));
@@ -541,9 +621,10 @@ function parseRace(race, cars){
     info.weather.label = t(info.weather.label);
     if (info.weather.mode) info.weather.mode = t(info.weather.mode);
   }
-  // Fallback race length from the event blurb, e.g. "GT3 + GT4 Multiclass / 75 min."
-  const m = race.event && /(\d+)\s*min/i.exec(race.event.website_short_text || "");
-  info.raceMinutes = (info.sessions.find(x => x.type === "R") || {}).minutes || (m ? Number(m[1]) : null);
+  // Fallback race length from the event blurb, e.g. "GT3 + GT4 Multiclass / 75 min." or "6h".
+  const blurb = `${ev.website_short_text || ""} ${ev.event_name || ""}`;
+  const m = /(\d+)\s*min/i.exec(blurb), hrs = /\b(\d{1,2})\s*(?:h|hrs?|hours?|stunden)\b/i.exec(blurb);
+  info.raceMinutes = (info.sessions.find(x => x.type === "R") || {}).minutes || (m ? Number(m[1]) : hrs ? Number(hrs[1]) * 60 : null);
   return info;
 }
 
@@ -658,11 +739,13 @@ function mergeHistory(rows){
 }
 
 // A past race counts once it has a finishing position, or has clearly ended
-// (finishing_pos 0 = DNF / no result).
+// (finishing_pos 0 = DNF / no result): 2 hours after the start, or for the
+// race on screen, once its live window is over (endurance races run for hours).
 function isFinal(r){
   const d = lfmDate(r.race_date);
   if (!d || d > Date.now()) return false;
-  return r.finishing_pos > 0 || r.rating_change || Date.now() - d > 2 * 3600e3;
+  const running = S.next && S.next.id === r.race_id ? raceWindow(S.next) : 2 * 3600e3;
+  return r.finishing_pos > 0 || r.rating_change || Date.now() - d > running;
 }
 const finals = () => S.history.filter(r => isFinal(r) && (!SIM_PIN || r.sim_id === SIM_PIN));
 
@@ -674,6 +757,7 @@ function makeResult(r){
     start: r.start_pos || null, finish: r.finishing_pos || 0, dnf: !r.finishing_pos,
     elo: r.rating_change ?? null, sr: r.sr_change ?? null, incidents: r.incidents ?? null,
     points: Math.round(r.points || 0) || null, split, carLogo: realLogo(r.thumbnail),
+    eventId: r.event_id || null, eventType: r.event_type || "", teamRace: !!r.team_event,
     sof: (split > 1 && r[`split${split}_sof`]) || r.sof || null,
   };
 }
@@ -682,12 +766,13 @@ function makeResult(r){
 async function loadResultRace(id){
   if (raceCache.has(id)) return raceCache.get(id);
   const race = await getJSON(URLS.race(id));
-  const me = ((race.participants && race.participants.entries) || []).find(e => String(e.user_id) === ID);
+  const me = carRows((race.participants && race.participants.entries) || []).find(isMe);
   // Results are nested per class / split; find this driver's row anywhere in them.
+  // Team races have one row per car, credited to one of its drivers.
   let row = null;
   const walk = (o, depth) => {
     if (row || !o || typeof o !== "object" || depth > 6) return;
-    if (!Array.isArray(o) && String(o.user_id) === ID && "bestlap" in o){ row = o; return; }
+    if (!Array.isArray(o) && "bestlap" in o && rowIsMine(o)){ row = o; return; }
     for (const v of Object.values(o)) walk(v, depth + 1);
   };
   walk(race.race_results, 0);
@@ -695,11 +780,13 @@ async function loadResultRace(id){
   const info = {livery: (me && me.livery) || null,
                 bestLap: row && row.bestlap ? row.bestlap.replace(/^00:|^0(?=\d:)/, "") : null,
                 classPos: row ? row.class_position : null,
+                teamName: (row && row.teamname) || (me && me.teamname) || null,
                 results: parseResults(race, row, me)};
   raceCache.set(id, info);
   return info;
 }
 
+const rowIsMine = x => isMe(x) || (Array.isArray(x.drivers) && x.drivers.some(isMe));
 // Finishing order of this driver's class in their split:
 // race_results_splits[split - 1][class].OVERALL, else race_results[class].OVERALL.
 function parseResults(race, row, me){
@@ -715,14 +802,16 @@ function parseResults(race, row, me){
   const pos = x => x.class_position || x.position || 999;
   const sorted = list.slice().sort((a, b) => pos(a) - pos(b));
   const laps = sorted.length ? sorted[0].laps : 0;
+  const team = sorted.some(x => Array.isArray(x.drivers) && x.teamname);
   return sorted.map(x => ({
-    pos: pos(x), door: x.car_number, first: x.vorname || "", last: x.nachname || "", origin: x.origin,
+    pos: pos(x), door: x.car_number, first: (team ? x.teamname : x.vorname) || "", last: team ? "" : x.nachname || "",
+    origin: team ? null : x.origin, teamCar: team,
     out: x.dsq ? "DSQ" : x.dns ? "DNS" : x.dnf ? "DNF" : "",
     // Winner: race time without milliseconds; others: gap in tenths ("+2.2") or laps down.
     gap: x === sorted[0] ? String(x.time || "").replace(/\.\d+$/, "").replace(/^0(?=\d:)/, "")
        : laps && x.laps < laps ? `+${laps - x.laps}L`
        : "+" + String(x.gap || "").replace(/^00:/, "").replace(/^0(?=\d)/, "").replace(/(\.\d)\d+$/, "$1"),
-    elo: x.ratingGain ?? null, gain: x.positionGain ?? null, me: String(x.user_id) === ID,
+    elo: x.ratingGain ?? null, gain: x.positionGain ?? null, me: rowIsMine(x),
   }));
 }
 
@@ -814,7 +903,7 @@ async function loadBroadcast(race, start){
   // Twitch, around race time only: official channel live with a matching title,
   // or simply live while LFM has this race on YouTube (they simulcast).
   let twitch = [];
-  const near = Date.now() > start.getTime() - 3600e3 && Date.now() < start.getTime() + RACE_WINDOW_MS;
+  const near = Date.now() > start.getTime() - 3600e3 && Date.now() < start.getTime() + raceWindow(S.next);
   if (near){
     try {
       const rows = (await getJSON(URLS.live)).data || [];
@@ -832,10 +921,116 @@ async function loadBroadcast(race, start){
           langs: [...new Set(youtube.concat(twitch).map(x => x.lang).filter(Boolean))]};
 }
 
+/* ------------------------------------------------------------------ standings
+   Championship position in the series of the race on screen (the next race, else
+   the last result). Season events only; team events rank the car's team. */
+let standingsKey = "", standingsAt = 0;
+async function loadStandings(){
+  if (hidden("standings")) return;
+  const r = currentRace(), res = S.mode === "result" ? S.result : null;
+  const src = r ? {event: r.eventId, type: r.eventType, team: r.teamRace ? r.teamName : null}
+            : res ? {event: res.eventId, type: res.eventType, team: res.teamRace ? res.teamName : null} : null;
+  if (!src || !src.event || (src.type && src.type !== "Season") || (res && !r && res.teamRace && !src.team)){
+    standingsKey = ""; S.standings = null; return;
+  }
+  const key = `${src.event}:${src.team || ""}`;
+  if (key === standingsKey && Date.now() - standingsAt < STANDINGS_MS) return;
+  standingsKey = key; standingsAt = Date.now();
+  try {
+    const data = await getJSON(src.team ? URLS.teamStandings(src.event) : URLS.standings(src.event));
+    if (key !== standingsKey) return;  // the series on screen changed meanwhile
+    const out = src.team ? teamStanding(data, src.team) : driverStanding(data);
+    const changed = JSON.stringify(out) !== JSON.stringify(S.standings);
+    S.standings = out;
+    if (changed && S.view) render(S);
+  } catch (e){ standingsAt = 0; console.warn("LFM standings fetch failed", e); }
+}
+function driverStanding(data){
+  for (const [cls, groups] of Object.entries(data || {})){
+    if (!groups || typeof groups !== "object") continue;
+    const overall = Array.isArray(groups) ? groups : groups.OVERALL;
+    const me = Array.isArray(overall) && overall.find(isMe);
+    if (!me) continue;
+    // Divisions only matter when there's more than one.
+    const divs = Array.isArray(groups) ? [] : Object.keys(groups).filter(k => k !== "OVERALL");
+    const div = divs.length > 1 && Array.isArray(groups[me.division]) ? groups[me.division] : null;
+    const dme = div && div.find(isMe);
+    return {pos: me.position, of: overall.length, points: Math.round(Number(me.points) || 0),
+            cls: cls === "OVERALL" ? "" : cls, team: false,
+            division: dme ? me.division : null, divPos: dme ? dme.position : null};
+  }
+  return null;
+}
+function teamStanding(data, name){
+  for (const [cls, list] of Object.entries(data || {})){
+    if (!Array.isArray(list)) continue;
+    const row = list.find(x => norm(x.teamname) === norm(name));
+    if (row) return {pos: row.position, of: list.length, points: Math.round(Number(row.teampoints) || 0), cls, team: true};
+  }
+  return null;
+}
+
+/* ------------------------------------------------------------------ trends
+   Rating (in the sim on screen) and safety rating after each of the last races,
+   oldest first, rebuilt from the current values and each race's change. */
+function trends(){
+  const v = S.view;
+  if (!v || hidden("trend")) return {elo: [], sr: []};
+  const elo = v.rating != null ? ratingTrail(S.sim, v.rating).slice(0, TREND_SIZE + 1).reverse() : [];
+  const sr = [], now = parseFloat(v.srNum);
+  if (!isNaN(now)){
+    sr.push(now);
+    for (const r of S.history){
+      if (sr.length > TREND_SIZE) break;
+      if (isFinal(r)) sr.push(Math.round((sr[sr.length - 1] - (Number(r.sr_change) || 0)) * 100) / 100);
+    }
+    sr.reverse();
+  }
+  return {elo, sr};
+}
+function sparkSVG(vals, w, h){
+  const min = Math.min(...vals), max = Math.max(...vals), pad = 5;
+  const y = v => max === min ? h / 2 : h - pad - (v - min) / (max - min) * (h - 2 * pad);
+  const pts = vals.map((v, i) => [pad + i * (w - 2 * pad) / (vals.length - 1), y(v)]);
+  const line = pts.map(p => p.map(n => n.toFixed(1)).join(",")).join(" "), [lx, ly] = pts[pts.length - 1];
+  return `<svg class="spark" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" aria-hidden="true">` +
+    `<polygon points="${pad},${h} ${line} ${(w - pad).toFixed(1)},${h}" style="fill:rgba(var(--volt-rgb),.13)"/>` +
+    `<polyline points="${line}" fill="none" style="stroke:var(--volt)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>` +
+    `<circle cx="${lx.toFixed(1)}" cy="${ly.toFixed(1)}" r="4" style="fill:var(--volt)"/></svg>`;
+}
+// Fills box with a sparkline per trend ("Rating", "Safety"): label, line, current
+// value and the change over the period. Returns how many races it covers (0 = nothing shown).
+function renderTrends(box, {w = 200, h = 40} = {}){
+  const tr = trends();
+  box.replaceChildren();
+  const add = (k, vals, digits) => {
+    if (vals.length < 3) return;
+    const d = document.createElement("div"); d.className = "trend";
+    const change = Math.round((vals[vals.length - 1] - vals[0]) * 10 ** digits) / 10 ** digits;
+    d.innerHTML = `<span class="tk"></span>${sparkSVG(vals, w, h)}<span class="tv"><b></b><em></em></span>`;
+    d.querySelector(".tk").textContent = t(k);
+    d.querySelector("b").textContent = vals[vals.length - 1].toFixed(digits);
+    const em = d.querySelector("em");
+    em.className = "delta " + deltaClass(change); em.textContent = signed(change, digits);
+    box.append(d);
+  };
+  add("Rating", tr.elo, 0);
+  add("Safety", tr.sr, 2);
+  return box.children.length ? Math.max(tr.elo.length, tr.sr.length) - 1 : 0;
+}
+// Championship position for display. With divisions the division position leads,
+// as on LFM: "P50" / "Div 2 · P467 overall · 227 pts"; else "P3" / "of 106 · 6408 pts".
+const standingText = st => st && (st.division && st.divPos
+  ? {pos: `P${st.divPos}`, rest: [t("Div {n}", {n: st.division}), `P${st.pos} ${t("overall")}`, st.points && t("{n} pts", {n: st.points})].filter(Boolean).join(" · ")}
+  : {pos: `P${st.pos}`, rest: [t("of {n}", {n: st.of}), st.points && t("{n} pts", {n: st.points})].filter(Boolean).join(" · ")});
+
 /* ------------------------------------------------------------------ derive */
+// How long a started race can still be running: its sessions plus an hour of
+// overtime and result processing, and at least RACE_WINDOW_MS.
+const raceWindow = n => Math.max(RACE_WINDOW_MS, n && n.length ? n.length + 3600e3 : 0);
 const nextActive = () => {
   const n = S.next;
-  if (!n || Date.now() > n.start.getTime() + RACE_WINDOW_MS) return false;
+  if (!n || Date.now() > n.start.getTime() + raceWindow(n)) return false;
   return !S.history.some(r => r.race_id === n.id && isFinal(r) && (r.finishing_pos > 0 || r.rating_change));
 };
 const currentRace = () => nextActive() && S.race && S.race.raceId === S.next.id ? S.race : null;
@@ -916,8 +1111,10 @@ async function load(){
   if (gotNext && next && !DEMO) store.set(NEXT_KEY, {...next, start: next.start.getTime()});
   if (gotNext && !next && !(S.next && S.next.start <= Date.now()) && !DEMO){
     const kept = store.get(NEXT_KEY), now = Date.now();
-    if (kept && kept.start <= now && now < kept.start + RACE_WINDOW_MS) next = {...kept, start: new Date(kept.start)};
+    if (kept && kept.start <= now && now < kept.start + raceWindow(kept)) next = {...kept, start: new Date(kept.start)};
   }
+  // The race length (known once the race details loaded) carries over to the fresh object.
+  if (next && S.next && next.id === S.next.id && !next.length) next.length = S.next.length;
   if (gotNext && (next || !(S.next && S.next.start <= Date.now()))) S.next = next;
 
   // The next race's details and the last result's details load side by side.
@@ -934,6 +1131,12 @@ async function load(){
   if (SIM_PIN && S.race && S.race.sim && S.race.sim !== SIM_PIN) S.next = S.race = null;
   if (S.race){
     S.race.sessionTimes = sessionTimes(S.next.start, S.race.sessions);
+    // Race length for the live window: the sessions, else the race length from the blurb.
+    const length = S.race.sessions.reduce((n, x) => n + x.minutes, 0) * 60e3 || (S.race.raceMinutes || 0) * 60e3;
+    if (length && S.next.length !== length){
+      S.next.length = length;
+      if (!DEMO) store.set(NEXT_KEY, {...S.next, start: S.next.start.getTime()});
+    }
     if (S.race.track) S.race.record = trackRecord(S.race.track.name, S.race.sim);
   }
   // Broadcast check (YouTube page + Twitch): after the first render, see below.
@@ -969,8 +1172,11 @@ async function load(){
   await document.fonts.ready;  // text fitting needs the real font; it loaded alongside the data
   loadedOnce = true;
   if (S.view){ render(S); $("stage").classList.add("ready"); }
+  problem(!S.view);
   queueCelebrations();
   if (first) loadFullHistory();
+  loadStandings();
+  sceneTick();
   if (checkBroadcast){
     const race = S.race;
     loadBroadcast(race, S.next.start).then(b => {
@@ -1011,18 +1217,18 @@ function celebrations(){
   if (r && Date.now() - r.date < CELEBRATE_MS){
     const key = k => `${r.raceId}:${k}`;
     if (r.finish === 1)
-      out.push({key: key("win"), big: t("Victory"), sub: [S.stats && S.stats.wins ? t("Win #{n}", {n: S.stats.wins}) : "", r.track]});
+      out.push({kind: "win", key: key("win"), big: t("Victory"), sub: [S.stats && S.stats.wins ? t("Win #{n}", {n: S.stats.wins}) : "", r.track]});
     else if (r.finish > 1 && r.finish <= 3)
-      out.push({key: key("podium"), big: t("Podium"), sub: [`P${r.finish}`, r.track]});
+      out.push({kind: "podium", key: key("podium"), big: t("Podium"), sub: [`P${r.finish}`, r.track]});
     if (S.fullHistory && r.elo > 0 && v.rating != null && r.sim === S.sim){
       const trail = ratingTrail(S.sim, v.rating);
       if (trail.length > 2 && v.rating > Math.max(...trail.slice(1)))
-        out.push({key: key("pb"), big: t("New personal best"), sub: [t("{n} rating", {n: v.rating}), signed(r.elo)]});
+        out.push({kind: "pb", key: key("pb"), big: t("New personal best"), sub: [t("{n} rating", {n: v.rating}), signed(r.elo)]});
     }
     const starts = S.stats && S.stats.starts;
-    if (starts && starts % 100 === 0) out.push({key: key("starts"), big: t("{n} starts", {n: starts}), sub: [t("on Low Fuel Motorsport")]});
+    if (starts && starts % 100 === 0) out.push({kind: "starts", key: key("starts"), big: t("{n} starts", {n: starts}), sub: [t("on Low Fuel Motorsport")]});
   }
-  if (S.promo) out.push({key: `promo:${S.promo.licence}`, big: t("Promoted"), sub: [t("Licence")], plate: S.promo.licence});
+  if (S.promo) out.push({kind: "promo", key: `promo:${S.promo.licence}`, big: t("Promoted"), sub: [t("Licence")], plate: S.promo.licence});
 
   // ?celebrate=win,podium,pb,promo,starts shows examples with this driver's data.
   for (const k of CELEBRATE.split(",").filter(Boolean)){
@@ -1033,7 +1239,7 @@ function celebrations(){
       promo: {big: t("Promoted"), sub: [t("Licence")], plate: v.licence || "GOLD"},
       starts: {big: t("{n} starts", {n: 500}), sub: [t("on Low Fuel Motorsport")]},
     }[k];
-    if (demo) out.push({...demo, key: `demo:${k}`});
+    if (demo) out.push({...demo, kind: k, key: `demo:${k}`});
   }
   return out;
 }
@@ -1075,12 +1281,86 @@ function playNext(){
     el.append(s);
   });
   host.append(el);
+  sting(c.kind);
   // Big headlines shrink to fit the stage.
   const big = el.querySelector(".big");
   const max = host.clientWidth * 0.86;
   let size = parseFloat(getComputedStyle(big).fontSize);
   while (big.scrollWidth > max && size > 24){ size -= 4; big.style.fontSize = size + "px"; }
   setTimeout(() => { el.remove(); setTimeout(playNext, 600); }, dur);
+}
+
+// A short synthesised sting with each banner: a whoosh with the band, then a
+// chord that rises for the bigger moments. Off with ?sound=off.
+let audio = null;
+const STINGS = {win: [523.25, 659.25, 783.99, 1046.5], podium: [659.25, 783.99, 987.77], pb: [783.99, 1174.66],
+                promo: [587.33, 739.99, 880, 1174.66], starts: [1046.5, 1318.51]};
+function sting(kind){
+  if (!SOUND) return;
+  try {
+    audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+    if (audio.state === "suspended") audio.resume();
+    const t0 = audio.currentTime + 0.05, out = audio.createGain();
+    out.gain.value = 0.25 * SOUND; out.connect(audio.destination);
+    const len = 0.9, buf = audio.createBuffer(1, Math.round(audio.sampleRate * len), audio.sampleRate), data = buf.getChannelData(0);
+    for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * Math.sin(Math.PI * i / data.length) ** 2;
+    const noise = audio.createBufferSource(), band = audio.createBiquadFilter(), ng = audio.createGain();
+    noise.buffer = buf; band.type = "bandpass"; band.Q.value = 1.4; ng.gain.value = 0.45;
+    band.frequency.setValueAtTime(350, t0); band.frequency.exponentialRampToValueAtTime(3200, t0 + len);
+    noise.connect(band).connect(ng).connect(out); noise.start(t0);
+    const notes = STINGS[kind] || STINGS.podium;
+    notes.forEach((f, i) => {
+      const at = t0 + 0.32 + i * 0.1, tail = i === notes.length - 1 ? 1.5 : 0.45;
+      for (const [type, mult, vol] of [["triangle", 1, 0.5], ["sine", 2, 0.1]]){
+        const o = audio.createOscillator(), g = audio.createGain();
+        o.type = type; o.frequency.value = f * mult;
+        g.gain.setValueAtTime(0, at); g.gain.linearRampToValueAtTime(vol, at + 0.015);
+        g.gain.exponentialRampToValueAtTime(0.001, at + tail);
+        o.connect(g).connect(out); o.start(at); o.stop(at + tail + 0.05);
+      }
+    });
+  } catch (e){ console.warn("LFM sound failed", e); }
+}
+
+/* ------------------------------------------------------------------ OBS scenes
+   Starting soon and lower third can switch OBS scenes, only between two scenes:
+   from SCENE_RESULT to SCENE_RACE a minute before the server opens, and back once
+   LFM publishes the result. If OBS is on any other scene at that moment (race day,
+   just chatting...) nothing happens. Each switch is decided once per race, shared
+   by all sources. Needs the browser source's page permissions at "Advanced access
+   to OBS" and both scenes to exist; otherwise it does nothing. */
+const obs = window.obsstudio;
+const obsCall = fn => new Promise(done => { try { obs[fn](done); } catch { done(null); } });
+const SCENE_KEY = `lfm-scenes:${ID}`;
+const sceneMemory = {};  // demo mode: forget on reload, so every demo run switches
+const sceneDone = k => DEMO ? !!sceneMemory[k] : (store.get(SCENE_KEY) || []).includes(k);
+function sceneMark(k){
+  if (DEMO){ sceneMemory[k] = true; return; }
+  store.set(SCENE_KEY, (store.get(SCENE_KEY) || []).concat(k).slice(-20));
+}
+function sceneEvent(){
+  const n = S.next;
+  if (S.mode !== "result" && nextActive() && n.start - Date.now() < SCENE_LEAD_MS)
+    return {key: `race:${n.id}`, scene: SCENE_RACE, from: SCENE_RESULT};
+  if (S.mode === "result" && S.result && Date.now() - S.result.date < 2 * 864e5)
+    return {key: `result:${S.result.raceId}`, scene: SCENE_RESULT, from: SCENE_RACE, after: `race:${S.result.raceId}`};
+  return null;
+}
+let sceneBusy = false;
+async function sceneTick(){
+  if (sceneBusy || !OPTS.scenes || !SCENES_ON || !obs || !obs.setCurrentScene || !S.view) return;
+  const ev = sceneEvent();
+  if (!ev || sceneDone(ev.key) || (ev.after && !sceneDone(ev.after))) return;
+  sceneBusy = true;
+  try {
+    if (!(await obsCall("getControlLevel") >= 4)) return;  // 4 = advanced access
+    const [scenes, cur] = await Promise.all([obsCall("getScenes"), obsCall("getCurrentScene")]);
+    if (!Array.isArray(scenes) || !scenes.includes(ev.scene) || !scenes.includes(ev.from)) return;
+    // Only from the expected scene: if the streamer is elsewhere, leave them be (and don't
+    // switch later, e.g. when they visit the starting soon scene during a long race).
+    if (cur && cur.name === ev.from) obs.setCurrentScene(ev.scene);
+    sceneMark(ev.key);
+  } finally { sceneBusy = false; }
 }
 
 /* ------------------------------------------------------------------ widgets */
@@ -1129,6 +1409,28 @@ function renderRivals(box, list){
   }
 }
 
+// Team races: the other drivers sharing this car ("Drivers"), as chips (avatar or flag, name).
+const crewMates = r => r && r.teamRace ? (r.crew || []).filter(d => !d.me) : [];
+function renderCrew(box, crew, {avatars = true} = {}){
+  box.replaceChildren();
+  for (const d of crew){
+    const chip = document.createElement("span"); chip.className = "cm";
+    if (avatars && d.avatar){
+      const img = document.createElement("img"); img.className = "cav"; img.alt = ""; img.src = d.avatar;
+      img.onerror = () => img.remove(); chip.append(img);
+    } else if (d.origin){
+      const img = document.createElement("img"); img.className = "cfl"; img.alt = ""; img.src = flagUrl(d.origin); chip.append(img);
+    }
+    const name = document.createElement("span"); name.className = "cnm";
+    name.textContent = [d.first, d.last].filter(Boolean).join(" ");
+    chip.append(name);
+    if (d.live){ const dot = document.createElement("i"); dot.className = "clv"; chip.append(dot); }
+    box.append(chip);
+  }
+}
+// "75 drivers", or "75 cars" in a team race.
+const entrants = (n, race) => t(race && race.teamRace ? "{n} cars" : n == 1 ? "{n} driver" : "{n} drivers", {n});
+
 // Scroll a field ticker back and forth when it doesn't fit its box.
 function scrollTrack(track, pxS = 60){
   const dist = Math.max(0, track.scrollWidth - track.parentElement.clientWidth);
@@ -1147,7 +1449,7 @@ function renderForm(box, form){
     b.append(em); box.append(b);
   }
   if (form.length){
-    const l = document.createElement("span"); l.className = "latest"; l.textContent = "◂ latest"; box.append(l);
+    const l = document.createElement("span"); l.className = "latest"; l.textContent = "◂ " + t("latest"); box.append(l);
   }
 }
 
@@ -1218,6 +1520,18 @@ function rotator({pages, title, bar, pageMs = 8000, scrollPxS = 90, hold = 1500,
   };
 }
 
+/* ------------------------------------------------------------------ no data
+   Nothing to show yet (a wrong ID, or LFM down when the source opened): say so
+   instead of staying blank, and try again every 30 s until it works. */
+let notice = null, retry = 0;
+function problem(on){
+  clearTimeout(retry);
+  if (!on){ if (notice){ notice.remove(); notice = null; } return; }
+  if (!notice){ notice = document.createElement("div"); notice.className = "notice"; document.body.append(notice); }
+  notice.textContent = t("Can't load LFM driver {id}. Check the ID in the URL. Trying again…", {id: ID});
+  retry = setTimeout(load, 30e3);
+}
+
 /* ------------------------------------------------------------------ data age
    If LFM can't be reached for a while the overlay keeps the last data; a small
    tag says how old it is so the streamer notices. */
@@ -1268,18 +1582,20 @@ async function watchUpdates(){
 /* ------------------------------------------------------------------ public */
 window.LFM = {
   S, PARAMS, ID, SIMS, MOTION, URLS, WX_ICONS, SESSION_NAMES, LFM_YOUTUBE, STAGE, HIDE, DEMO, hidden, t,
-  $, flagUrl, pad, countdown, ago, signed, deltaClass, fitStage, fitText, tighten, overflows,
+  $, flagUrl, countryName, pad, countdown, ago, signed, deltaClass, fitStage, fitText, tighten, overflows,
   paintLicence, paintSR, coin, rotator, renderRivals, renderForm, scrollTrack, currentRace, nextActive,
+  renderCrew, crewMates, entrants, renderTrends, standingText,
   // opts.broadcast: also look up LFM's official stream of the next race.
   // opts.hold: () => true while celebrations should wait.
   // opts.celebrations: false = never play any.
+  // opts.scenes: true = may switch OBS scenes (see sceneTick).
   start(fn, opts = {}){
     render = fn; OPTS = opts;
     if (HEXCODE) setAccent(HEXCODE, true);  // no flash of the default colour
     translatePage();
     watchAge();
     watchUpdates();
-    const go = () => { load(); setInterval(load, DEMO ? 10e3 : REFRESH_MS); };
+    const go = () => { load(); setInterval(load, DEMO ? 10e3 : REFRESH_MS); setInterval(sceneTick, 2000); };
     if (!DEMO) return go();
     const js = document.createElement("script");
     js.src = "/lfm-card/demo.js"; js.onload = js.onerror = go;

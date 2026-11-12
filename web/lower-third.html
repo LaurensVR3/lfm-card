@@ -58,6 +58,8 @@
 .info .bar{position:absolute;left:0;right:0;bottom:14px;height:2px;background:var(--rule);overflow:hidden}
 .info .bar b{display:block;height:100%;width:100%;background:var(--volt);transform-origin:left;transform:scaleX(0)}
 .info .bar b.run{animation:pbar linear forwards}
+.info .trends{flex-direction:column;align-items:flex-start;gap:2px;font-size:20px}
+.info .trend .tk{width:5.4em}
 .live-dot{display:inline-block;width:14px;height:14px;border-radius:50%;background:var(--down);animation:pulse 1.2s ease-in-out infinite}
 
 .avatar .cap{display:none}
@@ -134,6 +136,15 @@ html.ultra .extra{flex:2}
           <div class="lbl">Race details</div>
           <div class="big" id="detBig"></div>
           <div class="small" id="detSmall"></div>
+        </div>
+        <div class="page" data-title="Championship" id="pChamp">
+          <div class="lbl">Championship <em id="champSeries"></em></div>
+          <div class="big volt" id="champPos"></div>
+          <div class="small" id="champRest"></div>
+        </div>
+        <div class="page" data-title="Trend" id="pTrend">
+          <div class="lbl">Trend</div>
+          <div class="trends" id="trends"></div>
         </div>
         <div class="page" data-title="Form" id="pForm">
           <div class="lbl">Form <em>last 10</em></div>
@@ -212,7 +223,9 @@ function renderPages(){
       on("pGrid");
       $("gridDoor").textContent = `#${r.door}`;
       $("gridSeed").textContent = r.seed ? `P${r.seed}` : "";
-      $("gridOf").textContent = r.seed ? `${LFM.t("Seed of {n}", {n: r.classSize})} ${r.carClass || ""} · ${LFM.t("{n} drivers", {n: r.drivers})}` : "";
+      // Team race: the car is known by its door number and team.
+      $("gridOf").textContent = [r.teamRace && r.teamName,
+        r.seed && `${LFM.t("Seed of {n}", {n: r.classSize})} ${r.carClass || ""}`.trim(), LFM.entrants(r.drivers, r)].filter(Boolean).join(" · ");
       $("gridSof").textContent = r.sof ? `SOF ${r.sof}` : "";
     }
   } else if (S.mode === "result"){
@@ -258,10 +271,22 @@ function renderPages(){
   if (!race && S.form.length > 1 && !showForm && !LFM.hidden("form")){
     on("pForm"); LFM.renderForm($("form"), S.form);
   }
+  // Championship position (race or result), rating / SR trend (no race coming up).
+  const champ = LFM.standingText(S.standings);
+  if (champ && (race || S.mode === "result")){
+    on("pChamp");
+    $("champPos").textContent = champ.pos;
+    $("champRest").textContent = champ.rest;
+    $("champSeries").textContent = race ? S.next.series : res.series;
+  }
+  if (!race){
+    const n = LFM.renderTrends($("trends"), {w: 170, h: 28});
+    if (n) on("pTrend");
+  }
   rot.refresh();
 }
 
-LFM.start(() => { renderProfile(S.view); renderPages(); });
+LFM.start(() => { renderProfile(S.view); renderPages(); }, {scenes: true});
 setInterval(() => { if (S.view) renderClock(); }, 1000);
 </script>
 </body>
