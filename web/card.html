@@ -495,13 +495,13 @@ function renderConditions(r){
     $("wxRainVal").textContent = w.rain != null ? `${Math.round(w.rain * 100)}%` : "";
     $("wxVarVal").textContent = w.mode || "";
   }
-  show("sessRace", !!r.raceMinutes);
-  $("sessRaceVal").textContent = r.raceMinutes ? `${r.raceMinutes} min` : "";
+  show("sessRace", !!(r.raceMinutes || r.raceLaps));
+  $("sessRaceVal").textContent = r.raceLaps ? LFM.t("{n} laps", {n: r.raceLaps}) : r.raceMinutes ? `${r.raceMinutes} min` : "";
   const names = {P: LFM.t("Practice"), Q: LFM.t("Quali")};
-  const others = r.sessions.filter(x => names[x.type]).map(x => `${names[x.type]} ${x.minutes} min`);
+  const others = r.sessions.filter(x => names[x.type]).map(x => `${names[x.type]} ${x.laps ? LFM.t("{n} laps", {n: x.laps}) : `${x.minutes} min`}`);
   $("sessOtherVal").textContent = others.join("  ·  ");
   show("sessOther", others.length > 0);
-  $("pageConditions").dataset.empty = w || r.raceMinutes ? "" : "1";
+  $("pageConditions").dataset.empty = w || r.raceMinutes || r.raceLaps ? "" : "1";
 }
 
 LFM.start(() => { renderProfile(S.view); renderStrip(); renderPages(); });

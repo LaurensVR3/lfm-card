@@ -79,7 +79,7 @@ const I18N = {
     "Drivers": "Fahrer", "{n} cars": "{n} Autos", "{n} teammates": "{n} Teamkollegen", "{n} teammate": "{n} Teamkollege",
     "Can't load LFM driver {id}. Check the ID in the URL. Trying again…": "LFM-Fahrer {id} kann nicht geladen werden. Prüfe die ID in der URL. Neuer Versuch läuft…",
     "{n} turns": "{n} Kurven",
-    "Practice": "Training", "Qualifying": "Qualifying", "Quali": "Quali", "Race": "Rennen",
+    "Practice": "Training", "Qualifying": "Qualifying", "Quali": "Quali", "Race": "Rennen", "{n} laps": "{n} Runden",
     "{n} min ago": "vor {n} Min.", "{n}h ago": "vor {n} Std.", "yesterday": "gestern", "{n} days ago": "vor {n} Tagen",
     "Heavy rain": "Starkregen", "Rain": "Regen", "Light rain": "Leichter Regen", "Clear": "Klar", "Partly cloudy": "Leicht bewölkt",
     "Cloudy": "Bewölkt", "Overcast": "Bedeckt", "Storm": "Gewitter", "Snow": "Schnee", "Fog": "Nebel", "Hazy": "Dunstig",
@@ -111,7 +111,7 @@ const I18N = {
     "Drivers": "Pilotos", "{n} cars": "{n} coches", "{n} teammates": "{n} compañeros", "{n} teammate": "{n} compañero",
     "Can't load LFM driver {id}. Check the ID in the URL. Trying again…": "No se puede cargar el piloto de LFM {id}. Revisa el ID en la URL. Reintentando…",
     "{n} turns": "{n} curvas",
-    "Practice": "Libres", "Qualifying": "Clasificación", "Quali": "Clasif.", "Race": "Carrera",
+    "Practice": "Libres", "Qualifying": "Clasificación", "Quali": "Clasif.", "Race": "Carrera", "{n} laps": "{n} vueltas",
     "{n} min ago": "hace {n} min", "{n}h ago": "hace {n} h", "yesterday": "ayer", "{n} days ago": "hace {n} días",
     "Heavy rain": "Lluvia fuerte", "Rain": "Lluvia", "Light rain": "Lluvia ligera", "Clear": "Despejado", "Partly cloudy": "Parcialmente nublado",
     "Cloudy": "Nublado", "Overcast": "Cubierto", "Storm": "Tormenta", "Snow": "Nieve", "Fog": "Niebla", "Hazy": "Bruma",
@@ -143,7 +143,7 @@ const I18N = {
     "Drivers": "Pilotes", "{n} cars": "{n} voitures", "{n} teammates": "{n} coéquipiers", "{n} teammate": "{n} coéquipier",
     "Can't load LFM driver {id}. Check the ID in the URL. Trying again…": "Impossible de charger le pilote LFM {id}. Vérifie l'ID dans l'URL. Nouvel essai…",
     "{n} turns": "{n} virages",
-    "Practice": "Essais", "Qualifying": "Qualifications", "Quali": "Qualifs", "Race": "Course",
+    "Practice": "Essais", "Qualifying": "Qualifications", "Quali": "Qualifs", "Race": "Course", "{n} laps": "{n} tours",
     "{n} min ago": "il y a {n} min", "{n}h ago": "il y a {n} h", "yesterday": "hier", "{n} days ago": "il y a {n} jours",
     "Heavy rain": "Forte pluie", "Rain": "Pluie", "Light rain": "Pluie légère", "Clear": "Dégagé", "Partly cloudy": "Partiellement nuageux",
     "Cloudy": "Nuageux", "Overcast": "Couvert", "Storm": "Orage", "Snow": "Neige", "Fog": "Brouillard", "Hazy": "Brumeux",
@@ -175,7 +175,7 @@ const I18N = {
     "Drivers": "Piloti", "{n} cars": "{n} auto", "{n} teammates": "{n} compagni", "{n} teammate": "{n} compagno",
     "Can't load LFM driver {id}. Check the ID in the URL. Trying again…": "Impossibile caricare il pilota LFM {id}. Controlla l'ID nell'URL. Nuovo tentativo…",
     "{n} turns": "{n} curve",
-    "Practice": "Libere", "Qualifying": "Qualifiche", "Quali": "Quali", "Race": "Gara",
+    "Practice": "Libere", "Qualifying": "Qualifiche", "Quali": "Quali", "Race": "Gara", "{n} laps": "{n} giri",
     "{n} min ago": "{n} min fa", "{n}h ago": "{n} h fa", "yesterday": "ieri", "{n} days ago": "{n} giorni fa",
     "Heavy rain": "Pioggia forte", "Rain": "Pioggia", "Light rain": "Pioggia leggera", "Clear": "Sereno", "Partly cloudy": "Poco nuvoloso",
     "Cloudy": "Nuvoloso", "Overcast": "Coperto", "Storm": "Temporale", "Snow": "Neve", "Fog": "Nebbia", "Hazy": "Foschia",
@@ -207,7 +207,7 @@ const I18N = {
     "Drivers": "Rijders", "{n} cars": "{n} auto's", "{n} teammates": "{n} teamgenoten", "{n} teammate": "{n} teamgenoot",
     "Can't load LFM driver {id}. Check the ID in the URL. Trying again…": "Kan LFM-coureur {id} niet laden. Controleer de ID in de URL. Opnieuw proberen…",
     "{n} turns": "{n} bochten",
-    "Practice": "Training", "Qualifying": "Kwalificatie", "Quali": "Kwali", "Race": "Race",
+    "Practice": "Training", "Qualifying": "Kwalificatie", "Quali": "Kwali", "Race": "Race", "{n} laps": "{n} ronden",
     "{n} min ago": "{n} min geleden", "{n}h ago": "{n} u geleden", "yesterday": "gisteren", "{n} days ago": "{n} dagen geleden",
     "Heavy rain": "Zware regen", "Rain": "Regen", "Light rain": "Lichte regen", "Clear": "Helder", "Partly cloudy": "Half bewolkt",
     "Cloudy": "Bewolkt", "Overcast": "Zwaar bewolkt", "Storm": "Onweer", "Snow": "Sneeuw", "Fog": "Mist", "Hazy": "Nevelig",
@@ -239,7 +239,7 @@ const I18N = {
     "Drivers": "Pilotos", "{n} cars": "{n} carros", "{n} teammates": "{n} colegas de equipe", "{n} teammate": "{n} colega de equipe",
     "Can't load LFM driver {id}. Check the ID in the URL. Trying again…": "Não foi possível carregar o piloto LFM {id}. Verifique o ID na URL. Tentando de novo…",
     "{n} turns": "{n} curvas",
-    "Practice": "Treino", "Qualifying": "Qualificação", "Quali": "Quali", "Race": "Corrida",
+    "Practice": "Treino", "Qualifying": "Qualificação", "Quali": "Quali", "Race": "Corrida", "{n} laps": "{n} voltas",
     "{n} min ago": "há {n} min", "{n}h ago": "há {n} h", "yesterday": "ontem", "{n} days ago": "há {n} dias",
     "Heavy rain": "Chuva forte", "Rain": "Chuva", "Light rain": "Chuva fraca", "Clear": "Limpo", "Partly cloudy": "Parcialmente nublado",
     "Cloudy": "Nublado", "Overcast": "Encoberto", "Storm": "Tempestade", "Snow": "Neve", "Fog": "Nevoeiro", "Hazy": "Névoa",
@@ -624,26 +624,53 @@ function parseRace(race, cars){
   // Fallback race length from the event blurb, e.g. "GT3 + GT4 Multiclass / 75 min." or "6h".
   const blurb = `${ev.website_short_text || ""} ${ev.event_name || ""}`;
   const m = /(\d+)\s*min/i.exec(blurb), hrs = /\b(\d{1,2})\s*(?:h|hrs?|hours?|stunden)\b/i.exec(blurb);
-  info.raceMinutes = (info.sessions.find(x => x.type === "R") || {}).minutes || (m ? Number(m[1]) : hrs ? Number(hrs[1]) * 60 : null);
+  const raceSes = info.sessions.find(x => x.type === "R") || {};
+  info.raceMinutes = raceSes.minutes || (raceSes.laps ? null : m ? Number(m[1]) : hrs ? Number(hrs[1]) * 60 : null);
+  info.raceLaps = raceSes.laps || null;
+  // A race we can't read from the server config, but whose length the blurb names:
+  // add it, so the schedule still ends with a race (and not with qualifying).
+  if (!raceSes.type && info.raceMinutes && info.sessions.length) info.sessions.push({type: "R", minutes: info.raceMinutes});
   return info;
 }
 
-// Session start times from the race start (= server start, first session) and
-// the session lengths. Later sessions are approximate: the sim adds overtime.
-function sessionTimes(start, sessions){
+// Session times from the race start (= server start, first session). The timers
+// are only part of it: a session runs on until the cars finish their lap
+// (capped by the server's overtime), the sim shows results, and the race starts
+// after the pre-race wait and a formation lap. Only the first time is exact.
+// `at` = green flag, `end` = roughly when the session is over.
+const SESSION_GAP_MS = 30e3;        // results screen / loading between sessions
+const LAP_KMH = 150;                // rough average lap speed for the lap estimate
+function lapEstimate(km){
+  return km > 0 ? Math.min(600e3, Math.max(60e3, km / 1000 / LAP_KMH * 3600e3)) : 120e3;
+}
+function sessionTimes(start, sessions, timing = {}, km = 0){
+  const lap = lapEstimate(km);
+  const overtime = timing.overtime != null ? timing.overtime * 1e3 : lap;
+  const preRace = (timing.preRace != null ? timing.preRace : 120) * 1e3;
   let t = start.getTime();
-  return (sessions || []).map(s => { const at = new Date(t); t += s.minutes * 60e3; return {...s, at, end: new Date(t)}; });
+  return (sessions || []).map((s, i) => {
+    if (s.type === "R") t += preRace + (timing.formation != null ? timing.formation * 1e3 : (timing.shortFormation ? 0.6 : 1) * lap);
+    const at = t;
+    const run = s.minutes ? s.minutes * 60e3 : (s.laps || 0) * lap;
+    // Timed sessions: the field finishes the lap it is on. Races: the leader's last lap and the rest behind.
+    const over = s.type === "R" ? (s.minutes ? Math.min(overtime, lap) : 0) + Math.min(overtime, lap) / 2 : s.minutes ? Math.min(overtime, lap) : 0;
+    const end = at + run + over;
+    t = end + (timing.gap != null ? timing.gap * 1e3 : SESSION_GAP_MS);
+    return {...s, minutes: s.minutes || Math.round(run / 60e3), at: new Date(at), end: new Date(end), approx: i > 0 || s.type === "R"};
+  });
 }
 const SESSION_NAMES = {P: t("Practice"), Q: t("Qualifying"), R: t("Race")};
 
 // Each sim's server config has its own shape. Returns
 //   weather:  {icon, label, temp?, rain? (0..1), mode} or null
-//   sessions: [{type: "P"|"Q"|"R", minutes}], timed sessions only
+//   sessions: [{type: "P"|"Q"|"R", minutes} | {type, laps}], sessions of length 0 left out
+//   timing:   {preRace?, overtime? (seconds), shortFormation?} where the config says
 // Unknown shapes (LMU, future sims) just come back empty.
 function parseServer(race){
   const s = race.server_settings || {};
-  const out = {weather: null, sessions: []};
+  const out = {weather: null, sessions: [], timing: {}};
   const add = (type, minutes) => { if (minutes > 0) out.sessions.push({type, minutes: Math.round(minutes)}); };
+  const addLaps = (type, laps) => { if (laps > 0) out.sessions.push({type, laps: Math.round(laps)}); };
 
   // ACC and AC: ACC-style event.json, cloudLevel / rain are 0..1.
   const ev = s.server_settings && s.server_settings.event && s.server_settings.event.data;
@@ -652,6 +679,8 @@ function parseServer(race){
     out.weather = {icon, label, temp: ev.ambientTemp, rain: ev.rain || 0,
       mode: race.real_weather ? "Real weather" : ev.weatherRandomness > 0 ? "Dynamic" : "Static"};
     for (const x of ev.sessions || []) add(x.sessionType, x.sessionDurationMinutes);
+    const st = (s.server_settings.settings && s.server_settings.settings.data) || {};
+    out.timing = {preRace: ev.preRaceWaitingTimeSeconds, overtime: ev.sessionOverTimeSeconds, shortFormation: !!st.shortFormationLap};
     return out;
   }
 
@@ -662,6 +691,7 @@ function parseServer(race){
     add("P", g.practice_duration / 60);
     add("Q", g.qualify_duration / 60);
     if (!/LAP/i.test(g.race_duration_type || "")) add("R", g.race_duration / 60);
+    else addLaps("R", g.race_duration);
     if (sd.weather_type){
       const [icon, label] = describeName(sd.weather_type.replace(/^.*_/, ""));
       out.weather = {icon, label, mode: /DYNAMIC/i.test(sd.weather_behaviour || "") ? "Dynamic" : "Static"};
@@ -675,6 +705,7 @@ function parseServer(race){
     add("P", d.PracticeLength);
     add("Q", d.QualifyLength);
     if ((d.Flags || []).includes("TIMED_RACE")) add("R", d.RaceLength);
+    else addLaps("R", d.RaceLength);
     const slots = d.RaceWeatherSlots || 0, first = d.RaceWeatherSlot1 || "";
     if (slots && first){
       const [icon, label] = describeName(first);
@@ -690,7 +721,8 @@ function parseServer(race){
     const mins = x => x && !x.Laps ? x.Duration : 0;
     add("P", mins(ses.Practice));
     add("Q", mins(ses.Qualify));
-    add("R", mins(ses.Race1));
+    if (ses.Race1 && ses.Race1.Laps) addLaps("R", ses.Race1.Laps);
+    else add("R", mins(ses.Race1));
   }
   return out;
 }
@@ -1130,9 +1162,12 @@ async function load(){
   // A pinned sim only shows races in that sim.
   if (SIM_PIN && S.race && S.race.sim && S.race.sim !== SIM_PIN) S.next = S.race = null;
   if (S.race){
-    S.race.sessionTimes = sessionTimes(S.next.start, S.race.sessions);
+    S.race.sessionTimes = sessionTimes(S.next.start, S.race.sessions,
+      // The demo squeezes sessions into minutes: no gaps, so its timeline stays as it was.
+      DEMO ? {preRace: 0, overtime: 0, formation: 0, gap: 0} : S.race.timing, S.race.track && S.race.track.km);
     // Race length for the live window: the sessions, else the race length from the blurb.
-    const length = S.race.sessions.reduce((n, x) => n + x.minutes, 0) * 60e3 || (S.race.raceMinutes || 0) * 60e3;
+    const last = S.race.sessionTimes[S.race.sessionTimes.length - 1];
+    const length = last ? last.end - S.next.start : (S.race.raceMinutes || 0) * 60e3;
     if (length && S.next.length !== length){
       S.next.length = length;
       if (!DEMO) store.set(NEXT_KEY, {...S.next, start: S.next.start.getTime()});

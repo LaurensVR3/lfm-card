@@ -430,12 +430,17 @@ function renderSessions(r){
   $("sessions").replaceChildren(...list.map((s, i) => {
     const d = el("div", "ses");
     if (s.type === "R" || list.length === 1) d.classList.add("long");
-    const t = el("div", "t", (i ? "≈" : "") + hm(s.at));
-    t.append(small(`${s.minutes} min`));
+    const t = el("div", "t", (s.approx ? "≈" : "") + hm(s.at));
+    t.append(small(s.laps ? LFM.t("{n} laps", {n: s.laps}) : `${s.minutes} min`));
     const bar = el("div", "bar"); bar.append(el("b"));
     d.append(el("div", "fill"), el("div", "n", LFM.SESSION_NAMES[s.type] || s.type), t, bar);
     return d;
   }));
+}
+// The next session that hasn't started yet (between sessions, or before the race).
+function sessionNext(r){
+  const list = (r && r.sessionTimes) || [], now = Date.now();
+  return list.find(s => s.at > now) || null;
 }
 function sessionNow(r){
   const list = (r && r.sessionTimes) || [], now = Date.now();
@@ -666,7 +671,11 @@ function tickFrame(){
     state = LFM.SESSION_NAMES[cur.s.type] || cur.s.type;
     clock = (cur.s.type === "R" ? "≈" : "") + LFM.countdown(cur.s.end - now);
     prog = cur.p;
-  } else if (list.length && now >= list[list.length - 1].end){
+  } else if (sessionNext(r)){
+    // Between sessions: results screen, pre-race wait, formation lap.
+    const nx = sessionNext(r);
+    state = LFM.SESSION_NAMES[nx.type] || nx.type; clock = LFM.t("in {t}", {t: "≈" + LFM.countdown(nx.at - now)});
+  } else if (list.length && list[list.length - 1].type === "R" && now >= list[list.length - 1].end){
     state = LFM.t("Finished"); clock = LFM.t("Results soon"); prog = 1; live = false;
   } else {
     state = LFM.t("Live"); clock = LFM.countdown(now - start);
@@ -816,16 +825,17 @@ function tick(){
     if (diff > 0){
       $("state").textContent = LFM.t("Starting soon");
       $("clock").textContent = LFM.countdown(diff);
-      $("sub").replaceChildren(first ? `${LFM.SESSION_NAMES[first.type]} ` : LFM.t("Start") + " ", el("b", "", at));
-      if (raceSes && raceSes !== first) $("sub").append(`  ·  ${LFM.SESSION_NAMES.R} `, el("b", "", `≈${hm(raceSes.at)}`));
+      $("sub").replaceChildren(first && first.type !== "R" ? `${LFM.SESSION_NAMES[first.type]} ` : LFM.t("Start") + " ", el("b", "", at));
+      if (raceSes) $("sub").append(`  ·  ${LFM.SESSION_NAMES.R} `, el("b", "", `≈${hm(raceSes.at)}`));
       scene.classList.toggle("soon", diff < 60e3);
     } else {
       const cur = sessionNow(r);
       scene.classList.add("live");
-      if (cur && cur.s.type !== "R" && raceSes){
+      if (raceSes && raceSes.at > Date.now()){
         // Practice / qualifying: count down to the race session.
-        $("state").textContent = LFM.t("{s} now", {s: LFM.SESSION_NAMES[cur.s.type]});
-        $("clock").textContent = LFM.countdown(raceSes.at - Date.now());
+        // Practice / qualifying, or the wait and formation lap before the green flag.
+        $("state").textContent = cur ? LFM.t("{s} now", {s: LFM.SESSION_NAMES[cur.s.type]}) : LFM.t("Starting soon");
+        $("clock").textContent = "≈" + LFM.countdown(raceSes.at - Date.now());
         $("sub").replaceChildren(LFM.SESSION_NAMES.R + " ", el("b", "", `≈${hm(raceSes.at)}`));
       } else {
         $("state").textContent = LFM.t("Racing now");
